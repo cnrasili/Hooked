@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <!-- Mobile: pinch-zoom off; viewport-fit=cover for iOS notch. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#041025">
+  <meta name="description" content="Hooked! — a pixel-art fishing mini-game. Hook, catch, sell.">
+  <title>Hooked!</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <!-- 9:16 frame; clips all visual content inside. -->
+  <div id="appFrame">
+
+  <!-- Shared background video — sits behind menu/upgrades/biome screens. Stays playing across page switches. -->
+  <video id="sharedBgVideo" class="shared-bg-video" autoplay loop muted playsinline>
+    <source src="videos/MainMenuBackgroundVideo.mp4" type="video/mp4">
+  </video>
+
+  <!-- Loading screen; progress bar driven by Assets.load. -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="ls-inner">
+      <div class="ls-title">Hooked!</div>
+      <div class="ls-sub">Hook · Catch · Sell</div>
+      <div class="ls-bar-outer" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Loading progress">
+        <div class="ls-bar-inner" id="lsBar"></div>
+      </div>
+      <div class="ls-text" id="lsText">Loading assets…</div>
+    </div>
+  </div>
+
+  <!-- Menu. -->
+  <div id="menuScreen" class="screen light-ocean-theme">
+
+    <button id="muteBtn" class="mute-btn" type="button" aria-label="Toggle sound">🔊</button>
+
+    <!-- Tap-to-start prompt; unlocks audio, then fades out. -->
+    <div id="audioPrompt" class="audio-prompt">
+      <div class="ap-inner">
+        <div class="ap-icon">🔊</div>
+        <div class="ap-text">Tap anywhere to start</div>
+      </div>
+    </div>
+
+    <div class="menu-inner">
+      <div class="menu-title">Hooked!</div>
+      <div class="menu-sub">Hook · Catch · Sell</div>
+
+      <div class="menu-card">
+        <div class="mc-row"><span class="icon">⚓</span><span class="text">Hook drops to the <b>bottom</b></span></div>
+        <div class="mc-row"><span class="icon">🐠</span><span class="text"><b>Catch</b> the falling fish</span></div>
+        <div class="mc-row"><span class="icon">🚯</span><span class="text"><b>Avoid</b> the trash!</span></div>
+        <div class="mc-row"><span class="icon">🎯</span><span class="text">Reach <b>target</b> to win</span></div>
+        <div class="controls-hint">
+          <span class="ch-key">← →</span> / <span class="ch-key">A D</span> · <span class="ch-key">drag</span> move &nbsp;·&nbsp; <span class="ch-key">Esc</span> pause
+        </div>
+        <div class="best-row">
+          <span>Best Score</span>
+          <b id="menuBest">0</b>
+        </div>
+      </div>
+
+      <button class="btn-main" id="startBtn" aria-label="Start game">SET SAIL</button>
+      <button class="btn-shop" id="shopBtn" aria-label="Open upgrades shop">Upgrades</button>
+      <button class="btn-reset" id="resetBtn" aria-label="Reset all progress">Reset Progress</button>
+    </div>
+  </div>
+
+  <!-- Level select; cards rendered dynamically by ui.js. -->
+  <div id="levelSelectScreen" class="screen hidden light-ocean-theme">
+    <button id="muteBtnLS" class="mute-btn" type="button" aria-label="Toggle sound">🔊</button>
+    <div class="menu-inner">
+      <div class="menu-title">Choose Biome</div>
+      <div class="menu-sub">Beat a chapter to unlock the next</div>
+      <div class="level-list" id="levelList">
+        <!-- Populated by ui.js. -->
+      </div>
+      <button class="btn-sec shop-close-btn" id="levelSelectBackBtn" aria-label="Back to menu">← Back</button>
+    </div>
+  </div>
+
+  <!-- Shop. -->
+  <div id="shopScreen" class="screen hidden">
+    <button id="muteBtnShop" class="mute-btn" type="button" aria-label="Toggle sound">🔊</button>
+    <div class="shop-inner">
+      <div class="menu-title shop-title-heading">Upgrades</div>
+      <div class="shop-header">
+        <div class="shop-gold-display" id="shopGold">0</div>
+      </div>
+      <div class="shop-items" id="shopItems">
+        <!-- Populated by ui.js. -->
+      </div>
+      <button class="btn-sec shop-close-btn" id="shopCloseBtn" aria-label="Close shop">← Back</button>
+    </div>
+  </div>
+
+  <!-- Game. -->
+  <div id="gameScreen" class="screen hidden">
+    <!-- Canvas + float overlay (same-size layer, absolute-positioned text). -->
+    <div class="canvas-wrap">
+      <canvas id="canvas" role="img" aria-label="Fishing game canvas"></canvas>
+      <div id="floatLayer"></div>
+      <!-- Controls hint shown at level start. -->
+      <div id="controlsHint" class="controls-hint-ingame">
+        <span class="ch-key">← →</span> / <span class="ch-key">drag</span> move &nbsp;·&nbsp; <span class="ch-key">Esc</span> pause
+      </div>
+    </div>
+
+    <!-- Pause-only controls. -->
+    <button id="muteBtnPause" class="mute-btn mute-btn-pause" type="button" aria-label="Toggle sound">🔊</button>
+    <button id="pauseMenuBtn" class="pause-menu-btn" type="button" aria-label="Return to main menu">Main Menu</button>
+
+    <div id="hud">
+      <div class="hb">
+        <div class="lbl">Caught</div>
+        <div class="val" id="caughtDisp">0</div>
+      </div>
+      <div class="hb" style="text-align:center">
+        <div class="lvl-pill" id="lvlDisp">LEVEL 1</div>
+        <div class="lbl" style="margin-top:3px" id="phaseDisp">Casting…</div>
+      </div>
+      <div class="hb" style="text-align:right">
+        <div class="lbl">Target</div>
+        <div class="val" id="targetDisp">—</div>
+      </div>
+    </div>
+
+    <!-- Gold HUD strip. -->
+    <div id="goldHudBar">
+      <span id="goldHud">0</span>
+    </div>
+
+    <!-- Confetti canvas. -->
+    <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+    <!-- Result screen. -->
+    <div id="resultOverlay" class="hidden">
+      <div class="result-content">
+
+        <div class="res-title" id="resTitle">—</div>
+
+        <div class="res-score-wrap">
+          <div class="res-score-label">FINAL SCORE</div>
+          <div class="res-score-num" id="rScoreNum">0</div>
+          <div id="rNewBest" class="new-best" hidden>NEW BEST</div>
+        </div>
+
+        <!-- Stat table; 3rd column is labelled per row. -->
+        <div class="res-stats">
+          <div class="rs-header">
+            <span>This Game</span>
+            <span>Stat</span>
+            <span>Record</span>
+          </div>
+          <div class="rs-row">
+            <span class="rs-val" id="rCaught">0</span>
+            <span class="rs-label">Caught</span>
+            <span class="rs-best" id="rBestScore">0</span>
+          </div>
+          <div class="rs-row">
+            <span class="rs-val" id="rTarget">10</span>
+            <span class="rs-label">Target</span>
+            <span class="rs-best"></span>
+          </div>
+          <div class="rs-row">
+            <span class="rs-val" id="rHP">—</span>
+            <span class="rs-label">Hook HP</span>
+            <span class="rs-best"></span>
+          </div>
+          <div class="rs-row rs-row-gold">
+            <span class="rs-val" id="rGold">+0</span>
+            <span class="rs-label">Gold</span>
+            <span class="rs-best" id="rTotalGold">0</span>
+          </div>
+        </div>
+
+        <!-- Buttons. -->
+        <button class="res-btn-primary" id="nextBtn" aria-label="Next action">—</button>
+        <button class="res-btn-secondary" id="rMenuBtn" aria-label="Return to main menu">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Level-start transition overlay — only used when entering a level. -->
+  <div id="levelTransOverlay" class="level-trans-overlay"></div>
+
+  </div><!-- /#appFrame -->
+
+  <!-- Background music tracks (low volume). -->
+  <audio id="menuMusic"    preload="auto" loop src="sounds/musics/MainMenuMusic.mp3"></audio>
+  <audio id="levelMusic"   preload="auto" loop></audio>
+  <audio id="victoryMusic" preload="auto" loop src="sounds/musics/VictoryMusic.mp3"></audio>
+
+  <!-- Scripts in dependency order. -->
+  <script src="js/config.js"></script>
+  <script src="js/skins.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+
+</html>
