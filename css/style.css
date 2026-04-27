@@ -511,10 +511,6 @@ canvas     { display: block; border-radius: 14px; touch-action: none; }
   40%  { transform: translate(-50%, -5px) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -40px) scale(.9); }
 }
-.confetti-canvas {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  z-index: 49; pointer-events: none; border-radius: 14px;
-}
 
 /* --- level select --- */
 .level-list {

@@ -90,8 +90,8 @@ function showResult() {
 
   _dom.rNewBest.hidden = !isNew;
 
-  if (passed) { playVictory(); _spawnConfetti(); }
-  else { _stopConfetti(); stopLevelMusic(); playTone(180, 'sawtooth', .4, .22); playTone(120, 'sawtooth', .5, .2, .08); }
+  if (passed) { playVictory(); }
+  else { stopLevelMusic(); playTone(180, 'sawtooth', .4, .22); playTone(120, 'sawtooth', .5, .2, .08); }
 
   const isLast = g.idx >= LEVELS.length - 1;
   const nb     = _dom.nextBtn;
@@ -128,89 +128,6 @@ function _showGoldEarned(amount, container) {
   el.addEventListener('animationend', () => el.remove());
 }
 
-// Confetti system.
-const _confettiCanvas = document.getElementById('confettiCanvas');
-const _confettiCtx = _confettiCanvas ? _confettiCanvas.getContext('2d') : null;
-let _confettiPieces = [];
-let _confettiAnimId = null;
-
-const _CONFETTI_COLORS = [
-  '#ffd166', '#ff9f1c', '#00ffe7', '#5bc8ef', '#e0aaff',
-  '#ff4d6d', '#84ffff', '#ffb703', '#fff',
-];
-
-function _spawnConfetti() {
-  if (!_confettiCanvas) return;
-  const parent = _confettiCanvas.parentElement;
-  _confettiCanvas.width = parent.offsetWidth;
-  _confettiCanvas.height = parent.offsetHeight;
-
-  _confettiPieces = [];
-  const w = _confettiCanvas.width;
-  const h = _confettiCanvas.height;
-
-  for (let i = 0; i < 120; i++) {
-    _confettiPieces.push({
-      x: Math.random() * w,
-      y: -10 - Math.random() * h * 0.5,
-      vx: (Math.random() - 0.5) * 4,
-      vy: 2 + Math.random() * 4,
-      w: 4 + Math.random() * 6,
-      h: 6 + Math.random() * 10,
-      rot: Math.random() * Math.PI * 2,
-      rotV: (Math.random() - 0.5) * 0.15,
-      color: _CONFETTI_COLORS[Math.floor(Math.random() * _CONFETTI_COLORS.length)],
-      alpha: 1,
-    });
-  }
-
-  if (_confettiAnimId) cancelAnimationFrame(_confettiAnimId);
-  _confettiAnimLoop();
-}
-
-function _confettiAnimLoop() {
-  if (!_confettiCtx || _confettiPieces.length === 0) {
-    _stopConfetti();
-    return;
-  }
-
-  const cx = _confettiCtx;
-  const w = _confettiCanvas.width;
-  const h = _confettiCanvas.height;
-  cx.clearRect(0, 0, w, h);
-
-  let alive = 0;
-  _confettiPieces.forEach(p => {
-    if (p.alpha <= 0) return;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.06;
-    p.vx *= 0.99;
-    p.rot += p.rotV;
-    if (p.y > h * 0.75) p.alpha -= 0.02;
-
-    cx.save();
-    cx.globalAlpha = Math.max(0, p.alpha);
-    cx.translate(p.x, p.y);
-    cx.rotate(p.rot);
-    cx.fillStyle = p.color;
-    cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-    cx.restore();
-    if (p.alpha > 0) alive++;
-  });
-
-  if (alive > 0) {
-    _confettiAnimId = requestAnimationFrame(_confettiAnimLoop);
-  } else {
-    _stopConfetti();
-  }
-}
-
-function _stopConfetti() {
-  if (_confettiAnimId) { cancelAnimationFrame(_confettiAnimId); _confettiAnimId = null; }
-  if (_confettiCtx) _confettiCtx.clearRect(0, 0, _confettiCanvas.width, _confettiCanvas.height);
-  _confettiPieces = [];
-}
 
 function openShop() {
   renderShop();
@@ -298,7 +215,6 @@ const _RESULT_TRANSITION_MS = 600;
 
 function _closeResult() {
   stopVictory();
-  _stopConfetti();
   if (animId) { cancelAnimationFrame(animId); animId = null; }
 
   const overlay = _dom.resultOverlay;
