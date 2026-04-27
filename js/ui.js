@@ -224,109 +224,63 @@ function closeShop() {
   _dom.menuBest.textContent = Save.bestScore;
 }
 
+function _makeShopCard(item, isUpgrade) {
+  const lvl    = isUpgrade ? Save.getUpgradeLevel(item.id) : Save.getPowerup(item.id);
+  const maxed  = lvl >= item.max;
+  const cost   = maxed ? null : (isUpgrade ? item.costs[lvl] : item.cost);
+  const canBuy = !maxed && Save.gold >= cost;
+
+  const card = document.createElement('div');
+  card.className = 'shop-card' + (maxed ? ' shop-maxed' : '');
+
+  const stars = Array.from({ length: item.max }, (_, i) =>
+    `<span class="shop-star ${i < lvl ? 'filled' : ''}">&#9733;</span>`
+  ).join('');
+
+  const iconHtml = (item.spriteKey && SKINS[item.spriteKey])
+    ? `<img src="${SKINS[item.spriteKey]}" class="shop-sprite-icon" alt="${item.name}">`
+    : item.icon;
+
+  const previewText = isUpgrade && lvl > 0 && item.preview ? item.preview(lvl) : '';
+
+  card.innerHTML = `
+    <div class="shop-icon">${iconHtml}</div>
+    <div class="shop-info">
+      <div class="shop-name">${item.name}</div>
+      <div class="shop-desc">${item.desc}</div>
+      ${previewText ? `<div class="shop-preview">Current: ${previewText}</div>` : ''}
+      <div class="shop-stars">${stars}</div>
+    </div>
+    <div class="shop-badge ${maxed ? 'shop-badge-max' : canBuy ? 'shop-badge-buy' : 'shop-badge-poor'}">
+      ${maxed ? 'MAX' : `${cost} <span class="ic ic-coin"></span>`}
+    </div>
+  `;
+
+  if (canBuy) {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      Save.gold -= cost;
+      if (isUpgrade) Save.setUpgradeLevel(item.id, lvl + 1);
+      else           Save.addPowerup(item.id);
+      Save.flush();
+      sfxBuy();
+      renderShop();
+    });
+  } else {
+    card.style.cursor = maxed ? 'default' : 'not-allowed';
+    if (!maxed) card.addEventListener('click', () => sfxError());
+  }
+
+  return card;
+}
+
 function renderShop() {
   _dom.shopGold.innerHTML = `<span class="ic ic-coin"></span> ${Save.gold}`;
-
   const container = _dom.shopItems;
   container.innerHTML = '';
   const frag = document.createDocumentFragment();
-
-  UPGRADES.forEach(upg => {
-    const lvl    = Save.getUpgradeLevel(upg.id);
-    const maxed  = lvl >= upg.max;
-    const cost   = maxed ? null : upg.costs[lvl];
-    const canBuy = !maxed && Save.gold >= cost;
-
-    const card = document.createElement('div');
-    card.className = 'shop-card' + (maxed ? ' shop-maxed' : '');
-
-    const stars = Array.from({ length: upg.max }, (_, i) =>
-      `<span class="shop-star ${i < lvl ? 'filled' : ''}">\u2605</span>`
-    ).join('');
-
-    const previewText = lvl > 0 && upg.preview ? upg.preview(lvl) : '';
-
-    const upgIconHtml = (upg.spriteKey && SKINS[upg.spriteKey])
-      ? `<img src="${SKINS[upg.spriteKey]}" class="shop-sprite-icon" alt="${upg.name}">`
-      : upg.icon;
-
-    card.innerHTML = `
-      <div class="shop-icon">${upgIconHtml}</div>
-      <div class="shop-info">
-        <div class="shop-name">${upg.name}</div>
-        <div class="shop-desc">${upg.desc}</div>
-        ${previewText ? `<div class="shop-preview">Current: ${previewText}</div>` : ''}
-        <div class="shop-stars">${stars}</div>
-      </div>
-      <div class="shop-badge ${maxed ? 'shop-badge-max' : canBuy ? 'shop-badge-buy' : 'shop-badge-poor'}">
-        ${maxed ? 'MAX' : `${cost} <span class="ic ic-coin"></span>`}
-      </div>
-    `;
-
-    if (canBuy) {
-      card.style.cursor = 'pointer';
-      card.addEventListener('click', () => {
-        Save.gold -= cost;
-        Save.setUpgradeLevel(upg.id, lvl + 1);
-        Save.flush();
-        sfxBuy();
-        renderShop();
-      });
-    } else {
-      card.style.cursor = maxed ? 'default' : 'not-allowed';
-      if (!maxed) card.addEventListener('click', () => sfxError());
-    }
-
-    frag.appendChild(card);
-  });
-
-  POWERUPS.forEach(pu => {
-    const qty    = Save.getPowerup(pu.id);
-    const maxed  = pu.max != null && qty >= pu.max;
-    const canBuy = !maxed && Save.gold >= pu.cost;
-
-    const card = document.createElement('div');
-    card.className = 'shop-card' + (maxed ? ' shop-maxed' : '');
-
-    const puStars = pu.max
-      ? Array.from({ length: pu.max }, (_, i) =>
-          `<span class="shop-star ${i < qty ? 'filled' : ''}">★</span>`
-        ).join('')
-      : '';
-
-    const puIconHtml = (pu.spriteKey && SKINS[pu.spriteKey])
-      ? `<img src="${SKINS[pu.spriteKey]}" class="shop-sprite-icon" alt="${pu.name}">`
-      : pu.icon;
-
-    card.innerHTML = `
-      <div class="shop-icon">${puIconHtml}</div>
-      <div class="shop-info">
-        <div class="shop-name">${pu.name}</div>
-        <div class="shop-desc">${pu.desc}</div>
-        ${puStars ? `<div class="shop-stars">${puStars}</div>` : ''}
-      </div>
-      <div class="shop-badge ${maxed ? 'shop-badge-max' : canBuy ? 'shop-badge-buy' : 'shop-badge-poor'}">
-        ${maxed ? 'MAX' : `${pu.cost} <span class="ic ic-coin"></span>`}
-      </div>
-    `;
-
-    if (canBuy) {
-      card.style.cursor = 'pointer';
-      card.addEventListener('click', () => {
-        Save.gold -= pu.cost;
-        Save.addPowerup(pu.id);
-        Save.flush();
-        sfxBuy();
-        renderShop();
-      });
-    } else {
-      card.style.cursor = maxed ? 'default' : 'not-allowed';
-      if (!maxed) card.addEventListener('click', () => sfxError());
-    }
-
-    frag.appendChild(card);
-  });
-
+  UPGRADES.forEach(u => frag.appendChild(_makeShopCard(u, true)));
+  POWERUPS.forEach(p => frag.appendChild(_makeShopCard(p, false)));
   container.appendChild(frag);
 }
 

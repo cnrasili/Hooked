@@ -460,17 +460,10 @@ function drawActivePowerups() {
   const size = 22;
   const rightEdge = g.cW - 10;
   items.forEach((it, i) => {
-    const y = 56 + i * (size + 6);
-    if (it.kind === 'img') {
-      const img = Assets.get(it.asset);
-      if (img) {
-        _stateCtx.drawImage(img, rightEdge - size, y, size, size);
-      }
-    } else {
-      _stateCtx.font = '10px "Press Start 2P", system-ui, monospace';
-      _stateCtx.textAlign = 'right'; _stateCtx.textBaseline = 'top';
-      _stateCtx.fillStyle = '#ffd166';
-      _stateCtx.fillText(it.text, rightEdge, y + 6);
+    const img = Assets.get(it.asset);
+    if (img) {
+      const y = 56 + i * (size + 6);
+      _stateCtx.drawImage(img, rightEdge - size, y, size, size);
     }
   });
   _stateCtx.restore();

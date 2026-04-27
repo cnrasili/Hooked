@@ -17,6 +17,7 @@ const Save = {
     if (this.data.highestUnlocked === undefined) this.data.highestUnlocked = 0;
     if (this.data.upgrades        === undefined) this.data.upgrades        = {};
     if (this.data.powerups        === undefined) this.data.powerups        = {};
+
     UPGRADES.forEach(u => {
       if (this.data.upgrades[u.id] === undefined) this.data.upgrades[u.id] = 0;
     });
@@ -67,12 +68,12 @@ const Save = {
     }
   },
 
-  get gold()       { return this.data.gold; },
-  set gold(v)      { this.data.gold = Math.max(0, v); },
-  get bestScore()  { return this.data.bestScore; },
-  set bestScore(v) { this.data.bestScore = v; },
-  get lastLevel()  { return this.data.lastLevel; },
-  set lastLevel(v) { this.data.lastLevel = v; },
+  get gold()      { return this.data.gold; },
+  set gold(v)     { this.data.gold = Math.max(0, v); },
+  get bestScore() { return this.data.bestScore; },
+  set bestScore(v){ this.data.bestScore = v; },
+  get lastLevel() { return this.data.lastLevel; },
+  set lastLevel(v){ this.data.lastLevel = v; },
 
   getUpgradeLevel(id)    { return this.data.upgrades[id] || 0; },
   setUpgradeLevel(id, v) { this.data.upgrades[id] = v; },
@@ -82,9 +83,9 @@ const Save = {
     return upg ? upg.effect(this.getUpgradeLevel(id)) : 0;
   },
 
-  getPowerup(id)  { return this.data.powerups[id] || 0; },
-  addPowerup(id)  { this.data.powerups[id] = (this.data.powerups[id] || 0) + 1; },
-  usePowerup(id)  {
+  getPowerup(id) { return this.data.powerups[id] || 0; },
+  addPowerup(id) { this.data.powerups[id] = (this.data.powerups[id] || 0) + 1; },
+  usePowerup(id) {
     if (this.data.powerups[id] > 0) { this.data.powerups[id]--; return true; }
     return false;
   },

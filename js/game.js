@@ -232,15 +232,12 @@ function _warmupAllAssets() {
     // Emoji rasterization: warm every (emoji × font-spec) pair used at render time.
     const EMOJIS_TO_WARM = [
       '\u{1F5D1}\uFE0F', '\u{1F9F4}', '\u{1F964}', '\u{1FAA3}', '\u{1F96B}',
-      '\u{1F33F}', '\u{1FAB8}', '\u2B50',  '\u{1F41A}',
+      '\u{1F33F}', '\u{1FAB8}', '\u2B50', '\u{1F41A}',
       '\u{1FAB5}', '\u{1F344}', '\u{1FAB1}',
-      '\u2744\uFE0F','\u{1F9CA}', '\u{1F41F}',
-      '\u{1FA9D}', '\u{1FA9D}\u{1F494}',
-      '\u{1F41F}', '\u{1F6E1}\uFE0F', '\u{1F494}', '\u{1FA99}',
-      '\u{1F9F2}', '\u{1F512}', '\u{1F30A}',
-      '\u{1F507}', '\u{1F50A}',
-      '\u{1FA9D}', '\u2693', '\u{1F41F}', '\u{1F3AF}',
-      '\u{1F3A3}',
+      '\u2744\uFE0F', '\u{1F9CA}', '\u{1F41F}',
+      '\u{1FA9D}', '\u{1F6E1}\uFE0F', '\u{1F494}', '\u{1FA99}',
+      '\u{1F512}', '\u{1F30A}', '\u{1F507}', '\u{1F50A}',
+      '\u2693', '\u{1F3AF}', '\u{1F3A3}',
     ];
     // Font cache is keyed by font string — warm each stack used in draw.js.
     const WARM_FONT_SPECS = [

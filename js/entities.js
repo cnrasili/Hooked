@@ -105,9 +105,9 @@ function _onFishCaught(g, o) {
 
 
 // Floating text (object pool + Web Animations API).
-const _floatPool       = [];
+const _floatPool = [];
 const _floatAnimations = new WeakMap();
-let   _floatLayer      = null;
+let _floatLayer = null;
 
 function _getFloatLayer() {
   if (!_floatLayer) _floatLayer = document.getElementById('floatLayer');

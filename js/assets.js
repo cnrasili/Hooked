@@ -44,7 +44,6 @@ const Assets = {
 
   // Per-biome wave source images (loaded once, strips rebuilt on canvas resize).
   _waveImgs: {},   // biomeId → Image | null
-  _waveImgsLoaded: false,
 
   _WAVE_FILES: {
     ocean: 'assets/waves/OceanWaterWave.png',
