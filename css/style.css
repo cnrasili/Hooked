@@ -347,7 +347,7 @@ body {
   display: inline-flex; align-items: center; justify-content: center;
   align-self: center; margin-top: 8px; cursor: pointer;
 }
-.shop-close-btn:hover { transform: translateY(-3px) scale(1.03); filter: brightness(1.15); }
+.shop-close-btn:hover { background: url('../assets/buttons/MenuButton.png') center / 100% 100% no-repeat; transform: translateY(-3px) scale(1.03); filter: brightness(1.15); }
 
 /* --- level-start transition overlay --- */
 .level-trans-overlay {
