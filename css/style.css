@@ -371,12 +371,11 @@ body {
 /* --- game screen --- */
 .canvas-wrap {
   position: relative; display: inline-block; margin: auto;
-  border-radius: 14px; box-shadow: 0 0 50px rgba(0,80,160,.45);
 }
-canvas     { display: block; border-radius: 14px; touch-action: none; }
+canvas     { display: block; touch-action: none; }
 #floatLayer {
   position: absolute; inset: 0;
-  pointer-events: none; overflow: hidden; border-radius: 14px;
+  pointer-events: none; overflow: hidden;
 }
 
 #hud {
@@ -414,7 +413,7 @@ canvas     { display: block; border-radius: 14px; touch-action: none; }
 #resultOverlay {
   position: absolute; inset: 0; z-index: 50;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  border-radius: 14px; overflow: hidden;
+  overflow: hidden;
   background: url('../assets/backgrounds/ResultPageBackground.png') center / cover no-repeat;
   image-rendering: pixelated;
   transform: translateY(100%); opacity: 0;
