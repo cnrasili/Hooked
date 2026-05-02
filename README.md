@@ -1,43 +1,103 @@
-# 🎣 Hooked!
+# Hooked!
 
-A pixel-art, browser-based **fishing mini-game** built with vanilla HTML5 Canvas 2D and plain JavaScript — no frameworks, no build step.
+A browser-based fishing mini-game built with vanilla HTML5 Canvas 2D and plain JavaScript. Players catch fish across multiple ocean biomes with increasing difficulty, earn gold, and spend it on permanent upgrades and one-shot powerups.
 
-> **Course:** Computer Graphics — Spring 2026 Final Project
+> Course: Computer Graphics — Spring 2026 Final Project
 
-## ▶️ Play
+---
 
-- **Live demo (GitHub Pages):** _TBD — deploy first_
-- **Local:** just open `index.html` in any modern browser (Chrome / Firefox / Safari / Edge). No server required.
+## Tech Stack
 
-## 🎮 Controls
+| Layer | Technology |
+|---|---|
+| Platform | Web Browser |
+| Rendering | HTML5 Canvas 2D |
+| Language | Plain JavaScript (no build step) |
+| Styling | CSS3 |
+| Audio | WebAudio API & HTMLAudio |
+| Hosting | GitHub Pages |
+
+---
+
+## Prerequisites
+
+- Any modern web browser (Chrome / Firefox / Safari / Edge)
+- No server, no Node.js, no build tools required
+
+---
+
+## Setup
+
+```bash
+git clone https://github.com/cnrasili/Hooked.git
+cd Hooked
+```
+
+No install step needed. The game runs entirely in the browser from static files.
+
+---
+
+## Running the Application
+
+Open `index.html` directly in a browser, or serve the directory with any static file server:
+
+```bash
+# Option 1: Direct open
+start index.html
+
+# Option 2: Python simple server
+python -m http.server 8000
+```
+
+For GitHub Pages deployment, the game is available at the repository's Pages URL.
+
+---
+
+## Controls
 
 | Action | Input |
-|--------|-------|
-| Move the net | **Mouse** / **Touch** drag, or **← →** / **A D** keys |
-| Pause / resume | **Esc** |
-| Toggle sound | 🔊 button (main menu or pause screen) |
+|---|---|
+| Move the net | Mouse / Touch drag, or Arrow Keys (← →) / A D keys |
+| Pause / Resume | Esc key |
+| Toggle sound | Speaker button on main menu or pause screen |
 | Skip intro cast | Tap / click anywhere during the cast animation |
 
-## 🧩 Gameplay Loop
+---
 
-1. **Menu → Biome Select** — pick an ocean biome. Beat one to unlock the next.
-2. **Fishing phase** — catch the target number of fish while avoiding trash. Trash costs Net HP.
-3. **Result screen** — gold earned, new best-score banner, confetti on win.
-4. **Shop** — spend gold on permanent upgrades (wider net, extra HP, slower rise) and one-shot powerups (shield, magnet, timewarp).
+## Gameplay Loop
 
-Each biome increases difficulty (faster rise, more trash ratio, new fish models).
+1. **Biome Select** — Choose an ocean biome. Beating a biome unlocks the next. Each biome increases difficulty (faster rise, more trash, new fish).
+2. **Fishing Phase** — Catch the target number of fish while avoiding trash. Trash reduces Net HP.
+3. **Result Screen** — Awards gold, shows high scores, triggers confetti on a win.
+4. **Shop** — Spend gold on permanent upgrades (wider net, HP, slower rise) and powerups (shield, magnet, timewarp).
 
-## 🎨 Computer Graphics Concepts Demonstrated
+---
 
-See `docs/GRAPHICS_CONCEPTS.md` for the detailed map. Brief overview:
+## Features
 
-- **Transformations** — boat bobbing, hook punch scaling, net sway (rotation + translate)
-- **Animation** — fixed-timestep accumulator, particle systems, tween-based float texts (Web Animations API)
-- **Interaction** — Pointer Events API (mouse/touch/pen unified), keyboard, pause/mute state machine
-- **Rendering techniques** — offscreen canvas caching, gradient cache, parallax wave strips, caustics light shader, biome-aware sprite pipeline
-- **Effects** — damage flash, screen shake, depth vignette, burst particles, confetti
+- **Multiple biomes** — progressively harder ocean environments with unique backgrounds, waves, and fish types
+- **Upgrade system** — permanent net upgrades and consumable powerups purchased with in-game gold
+- **Particle effects** — burst particles, confetti, floating score text, and damage flash
+- **Fixed-timestep physics** — frame-rate-independent gameplay across 30 / 60 / 120 Hz displays
+- **Object pooling** — DOM pool and WeakMap-based animation reuse to prevent GC jank
+- **Biome-aware rendering** — per-biome sprite resolution via `resolveSkin(biomeId, key)`
+- **Offscreen canvas caching** — water gradients, wave strips, and caustics pre-rendered and reused per resize
+- **Save system** — player gold, unlocked biomes, and upgrades persisted via localStorage
+- **Error boundary** — game loop catches per-frame errors; 30 consecutive failures halt with a UI indicator
 
-## 🗂️ Project Structure
+---
+
+## Computer Graphics Concepts Demonstrated
+
+- **Transformations** — boat bobbing, hook punch scaling, and net sway using rotation and translation
+- **Animation** — particle systems, tween-based float texts (Web Animations API), and fixed-timestep physics
+- **Interaction** — Pointer Events API (mouse/touch/pen unified), keyboard state, and pause/mute state machine
+- **Rendering techniques** — offscreen canvas caching, parallax wave strips, caustics light shaders, and biome-aware sprite pipelines
+- **Effects** — damage flashing, screen shake, depth vignette, burst particles, and confetti
+
+---
+
+## Project Structure
 
 ```
 Hooked!/
@@ -60,21 +120,16 @@ Hooked!/
 └── videos/                  # Menu background video
 ```
 
-## 🧱 Architecture Highlights
+---
 
-- **Fixed-timestep accumulator** (`FIXED_DT_MS = 1000/60`, `MAX_STEPS = 3`) — frame-rate-independent physics on 30 / 60 / 120 Hz displays alike.
-- **Object pool** — float texts are reused via a DOM pool + WeakMap of animations (prevents GC jank).
-- **Per-biome asset resolver** — `resolveSkin(biomeId, key)` transparently picks the right texture; adding a new biome is a one-line config change.
-- **Gradient & offscreen-canvas cache** — water gradients, wave strips, and caustics are pre-rendered and reused per resize.
-- **Autoplay-policy workaround** — a "tap to start" pill waits for the first user gesture, then unlocks `AudioContext` and starts the menu music.
-- **Error boundary** — the game loop catches and logs per-frame errors; 30 consecutive failures halt the loop with a UI indicator.
-
-## 🙏 Credits
+## Credits
 
 - Fish, boat, hook, trash — custom pixel art by the author
-- Background music — _see `sounds/musics/` file attributions in the report_
-- Fonts — Google Fonts: **Fredoka One**, **Nunito**
+- Background music — see `sounds/musics/` file attributions in the report
+- Fonts — Google Fonts: Fredoka One, Nunito
 
-## 📜 License
+---
+
+## License
 
 Course-project scope. Do not redistribute art/music assets without the author's permission.
