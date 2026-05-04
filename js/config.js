@@ -123,6 +123,6 @@ const UPGRADES = [
 ];
 
 const POWERUPS = [
-  { id: 'shield', icon: '🛡️', spriteKey: 'iconShield', name: 'Shield', desc: 'Blocks first trash hit', cost: 8,  max: 3 },
-  { id: 'worm',   icon: '🪱', spriteKey: 'iconWorm',   name: 'Worm',   desc: 'Fish drift toward hook', cost: 12, max: 3 },
+  { id: 'shield', icon: '🛡️', spriteKey: 'iconShield', name: 'Shield', desc: 'Blocks first trash hit — 1 charge per round', cost: 8,  max: 3 },
+  { id: 'worm',   icon: '🪱', spriteKey: 'iconWorm',   name: 'Worm',   desc: 'Fish drift toward hook — 1 charge per round', cost: 12, max: 3 },
 ];
