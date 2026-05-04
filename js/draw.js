@@ -1,13 +1,9 @@
-// Canvas rendering.
+// Canvas rendering — painter's algorithm, INTRO/SURFACE and FISHING phases.
 'use strict';
 
-function _drawLerp(a, b, t) { return a + (b - a) * t; }
-
-function boatHullOffset() {
-  const boat = Assets.get('boat');
-  const drawH = boat ? BOAT_DRAW_W * (boat.height / boat.width) : 68;
-  return drawH / 2 - BOAT_DRAW_Y_OFFSET;
-}
+// ─── 1. MAIN DRAW ─────────────────────────────────────────────────────────────
+// Entry point called every frame. Clears the canvas, then calls each rendering
+// layer in painter's order (back → front) for the active phase.
 
 function draw() {
   if (!G) return;
@@ -45,7 +41,26 @@ function draw() {
   if (g.isPaused) drawPauseOverlay();
 }
 
-let _oceanBgCache = { cW: 0, cH: 0, drawW: 0, drawH: 0, drawX: 0, drawY: 0 };
+// Math utilities shared across rendering functions.
+function _drawLerp(a, b, t) { return a + (b - a) * t; }
+
+function boatHullOffset() {
+  const boat = Assets.get('boat');
+  const drawH = boat ? BOAT_DRAW_W * (boat.height / boat.width) : 68;
+  return drawH / 2 - BOAT_DRAW_Y_OFFSET;
+}
+
+// Normalised scroll progress: 0 = surface, 1 = deepest point.
+function _getDepthProgress(g) {
+  if (g.phase === PH.SURFACE || g.phase === PH.RESULT) return 1;
+  if (g.phase === PH.FISHING) return Math.min(-g.worldOffset / g.WORLD_H, 1);
+  return 0;
+}
+
+// ─── 2. BACKGROUND ────────────────────────────────────────────────────────────
+// Ocean-depth gradient + optional sky image + underwater texture overlay.
+// Gradients are built by linear interpolation between biome colour stops and
+// cached by key string so createLinearGradient is not called every frame.
 
 const _gradCache = {
   bg:      { key: '', grad: null },
@@ -100,15 +115,8 @@ function _getSandGradient(sy, floorH, biome) {
   return grad;
 }
 
-// Invalidate gradient caches on canvas resize.
-function _invalidateGradientCache() {
-  _gradCache.bg.key = '';
-  _gradCache.shimmer.key = '';
-  _gradCache.sand.key = '';
-  _gradCache.depth.key = '';
-  _depthBarGradKey = '';
-  _seabedDecoCache.key = '';
-}
+// Background image layout cached per canvas size.
+let _oceanBgCache = { cW: 0, cH: 0, drawW: 0, drawH: 0, drawX: 0, drawY: 0 };
 
 function _updateOceanBgCache(cW, cH, oceanBg) {
   if (_oceanBgCache.cW === cW && _oceanBgCache.cH === cH) return;
@@ -123,7 +131,7 @@ function _updateOceanBgCache(cW, cH, oceanBg) {
   _oceanBgCache.cW = cW; _oceanBgCache.cH = cH;
 }
 
-// Sky cover-scale: bottom edge snapped to waterY, centred horizontally, clipped.
+// Sky: cover-scale with bottom edge snapped to waterY, clipped to sky region.
 function _computeSkyRect(cW, waterY, skyImg) {
   const scale = Math.max(cW / skyImg.width, waterY / skyImg.height);
   const drawW = skyImg.width  * scale;
@@ -167,7 +175,7 @@ function drawBackground() {
       }
     }
 
-    // Underwater.
+    // Underwater texture overlay.
     _stateCtx.save();
     _stateCtx.beginPath(); _stateCtx.rect(0, waterY, cW, cH - waterY); _stateCtx.clip();
     _stateCtx.globalAlpha = 0.35;
@@ -182,7 +190,10 @@ function drawBackground() {
   }
 }
 
-// Seabed deco cached to offscreen canvas; each frame just blits it.
+// ─── 3. SEABED ────────────────────────────────────────────────────────────────
+// Sand floor with biome-specific deco sprites. The deco strip is rendered once
+// to an offscreen canvas and blitted each frame (offscreen canvas caching).
+
 const _seabedDecoCache = { key: '', canvas: null };
 const _SEABED_DECO_POS = [
   { x: 0.08, y: 6, sz: 22 }, { x: 0.22, y: 10, sz: 20 },
@@ -190,6 +201,7 @@ const _SEABED_DECO_POS = [
   { x: 0.58, y: 22, sz: 14 }, { x: 0.72, y: 8,  sz: 22 },
   { x: 0.88, y: 5,  sz: 20 }, { x: 0.95, y: 18, sz: 12 },
 ];
+
 function _getSeabedDecoSprite(cW, biome) {
   const key = cW + '|' + biome.id;
   if (_seabedDecoCache.key === key) return _seabedDecoCache.canvas;
@@ -242,6 +254,109 @@ function drawSeabed() {
   ctx.restore();
 }
 
+// ─── 4. WAVES (INTRO / SURFACE) ───────────────────────────────────────────────
+// Four parallax wave strips generated procedurally by assets.js, scrolling at
+// different speeds to produce depth. Drawn in painter's order: far → front.
+
+function _biomeWaveKey(suffix) {
+  const biomeId = (G && G.cfg && G.cfg.biome) ? G.cfg.biome : 'ocean';
+  return biomeId + '_' + suffix;
+}
+
+function drawWavesFar(waterY)   { drawWaveLayer(_biomeWaveKey('wave_far'),   waterY, -36, 0.15, -0.8); }
+function drawWavesBack(waterY)  { drawWaveLayer(_biomeWaveKey('wave_back'),  waterY, -27, 0.3,  -0.5); }
+function drawWavesMid(waterY)   { drawWaveLayer(_biomeWaveKey('wave_mid'),   waterY, -18, 0.6,  -0.25); }
+function drawWavesFront(waterY) { drawWaveLayer(_biomeWaveKey('wave_front'), waterY,  -9, 1.0,   0.0); }
+
+function drawWaveLayer(assetKey, waterY, yOffset, speed, bobPhase) {
+  const tex = Assets.get(assetKey);
+  if (!tex) return;
+  const g   = G;
+  const bob = Math.sin(g.frame * 0.04 + bobPhase) * 3;
+  const y   = waterY + yOffset + bob;
+  const tileW  = tex._tileW || tex.width;
+  const offset = ((g.frame * speed) % tileW + tileW) % tileW;
+
+  _stateCtx.drawImage(tex, offset, y);
+  _stateCtx.drawImage(tex, offset - tileW, y);
+}
+
+// ─── 5. BOAT, HOOK & ROPE ─────────────────────────────────────────────────────
+// Boat bobs on a sine curve. Hook punch scale is driven by game state.
+// The rope is a single line segment from hull centre to hook position.
+
+function drawBoat(boatY) {
+  const g = G, cx = g.cW / 2;
+  const bob = (g.phase === PH.INTRO || g.phase === PH.SURFACE)
+    ? Math.sin(g.frame * 0.06) * 2.5 : 0;
+  const boat = Assets.get('boat');
+  if (boat) {
+    const drawW = BOAT_DRAW_W, drawH = drawW * (boat.height / boat.width);
+    // Sprite's geometric centre isn't the waterline — nudge up by BOAT_DRAW_Y_OFFSET.
+    _stateCtx.drawImage(boat, cx - drawW / 2, boatY + bob - drawH / 2 - BOAT_DRAW_Y_OFFSET, drawW, drawH);
+  } else {
+    drawEmoji('⛵', cx, boatY + bob, 72);
+  }
+}
+
+function drawHook(screenY, alpha, overrideCx) {
+  const g  = G, cx = overrideCx || g.cW / 2;
+  const hW = g.HOOK_W, hookH = g.HOOK_H;
+  const showRope = (g.phase === PH.FISHING);
+  _stateCtx.save();
+
+  if (showRope) {
+    _stateCtx.strokeStyle = '#c8a96e';
+    _stateCtx.lineWidth = 2; _stateCtx.globalAlpha = 0.7 * alpha;
+    _stateCtx.beginPath(); _stateCtx.moveTo(cx, screenY); _stateCtx.lineTo(cx, 0); _stateCtx.stroke();
+  }
+
+  const hook = Assets.get('hook');
+  if (hook) {
+    const drawH = hookH + 10, drawW = drawH * (hook.width / hook.height);
+    _stateCtx.globalAlpha = alpha;
+    if (g.hookPunch > 0) {
+      const punchScale = 1 + (g.hookPunch / 8) * 0.25;
+      _stateCtx.translate(cx, screenY + drawH / 2);
+      _stateCtx.scale(punchScale, punchScale);
+      _stateCtx.drawImage(hook, -drawW / 2, -drawH / 2, drawW, drawH);
+    } else {
+      _stateCtx.drawImage(hook, cx - drawW / 2, screenY, drawW, drawH);
+    }
+  } else {
+    drawEmoji('\u{1FA9D}', cx, screenY + hookH / 2, 40, alpha);
+  }
+
+  if (g.caught > 0) {
+    _stateCtx.globalAlpha = 0.85 * alpha; _stateCtx.font = '700 16px "Pixelify Sans", system-ui, sans-serif';
+    _stateCtx.textAlign = 'center'; _stateCtx.textBaseline = 'middle'; _stateCtx.fillStyle = '#ffd166';
+    _stateCtx.fillText(`×${g.caught}`, cx, screenY + hookH + 16);
+  }
+
+  _stateCtx.restore();
+}
+
+// INTRO / SURFACE: single rope line from boat hull centre down to hook.
+function drawRope(boatY, hookY) {
+  const g = G;
+  const ropeX = g.cW / 2;
+  const ropeStartY = boatY + boatHullOffset();
+  if (hookY <= ropeStartY) return;
+  _stateCtx.save();
+  _stateCtx.strokeStyle = '#c8a96e';
+  _stateCtx.lineWidth   = 2;
+  _stateCtx.globalAlpha = 0.75;
+  _stateCtx.beginPath();
+  _stateCtx.moveTo(ropeX, ropeStartY);
+  _stateCtx.lineTo(ropeX, hookY);
+  _stateCtx.stroke();
+  _stateCtx.restore();
+}
+
+// ─── 6. OBJECTS (FISHING) ─────────────────────────────────────────────────────
+// Fish and trash items. Sprites wobble via a sine-driven rotation; items
+// without a loaded sprite fall back to an emoji glyph of the same size.
+
 function drawObjects() {
   const g = G;
   const cH = g.cH;
@@ -285,109 +400,14 @@ function _drawObjectSprite(g, o, sy) {
   drawEmoji(o.em, o.x, sy, o.sz, o.alpha, Math.sin(o.wb) * 0.08);
 }
 
-function drawHook(screenY, alpha, overrideCx) {
-  const g  = G, cx = overrideCx || g.cW / 2;
-  const hW = g.HOOK_W, hookH = g.HOOK_H;
-  const showRope = (g.phase === PH.FISHING);
-  _stateCtx.save();
+// ─── 7. HUD OVERLAYS ──────────────────────────────────────────────────────────
+// Drawn last so they appear on top of all game objects.
+// Depth gauge uses a cached linear gradient and a 1px-offset outline trick
+// (cheaper than shadowBlur) for the depth label.
 
-  if (showRope) {
-    _stateCtx.strokeStyle = '#c8a96e';
-    _stateCtx.lineWidth = 2; _stateCtx.globalAlpha = 0.7 * alpha;
-    _stateCtx.beginPath(); _stateCtx.moveTo(cx, screenY); _stateCtx.lineTo(cx, 0); _stateCtx.stroke();
-  }
-
-  const hook = Assets.get('hook');
-  if (hook) {
-    const drawH = hookH + 10, drawW = drawH * (hook.width / hook.height);
-    _stateCtx.globalAlpha = alpha;
-    if (g.hookPunch > 0) {
-      const punchScale = 1 + (g.hookPunch / 8) * 0.25;
-      _stateCtx.translate(cx, screenY + drawH / 2);
-      _stateCtx.scale(punchScale, punchScale);
-      _stateCtx.drawImage(hook, -drawW / 2, -drawH / 2, drawW, drawH);
-    } else {
-      _stateCtx.drawImage(hook, cx - drawW / 2, screenY, drawW, drawH);
-    }
-  } else {
-    drawEmoji('\u{1FA9D}', cx, screenY + hookH / 2, 40, alpha);
-  }
-
-  if (g.caught > 0) {
-    _stateCtx.globalAlpha = 0.85 * alpha; _stateCtx.font = '700 16px "Pixelify Sans", system-ui, sans-serif';
-    _stateCtx.textAlign = 'center'; _stateCtx.textBaseline = 'middle'; _stateCtx.fillStyle = '#ffd166';
-    _stateCtx.fillText(`\u00D7${g.caught}`, cx, screenY + hookH + 16);
-  }
-
-  _stateCtx.restore();
-}
-
-function drawBoat(boatY) {
-  const g = G, cx = g.cW / 2;
-  const bob = (g.phase === PH.INTRO || g.phase === PH.SURFACE)
-    ? Math.sin(g.frame * 0.06) * 2.5 : 0;
-  const boat = Assets.get('boat');
-  if (boat) {
-    const drawW = BOAT_DRAW_W, drawH = drawW * (boat.height / boat.width);
-    // Sprite's geometric centre isn't the waterline — nudge up by BOAT_DRAW_Y_OFFSET.
-    _stateCtx.drawImage(boat, cx - drawW / 2, boatY + bob - drawH / 2 - BOAT_DRAW_Y_OFFSET, drawW, drawH);
-  } else {
-    drawEmoji('\u26F5', cx, boatY + bob, 72);
-  }
-}
-
-function _biomeWaveKey(suffix) {
-  const biomeId = (G && G.cfg && G.cfg.biome) ? G.cfg.biome : 'ocean';
-  return biomeId + '_' + suffix;
-}
-
-function drawWavesFar(waterY) {
-  drawWaveLayer(_biomeWaveKey('wave_far'),   waterY, -36, 0.15, -0.8);
-}
-function drawWavesBack(waterY) {
-  drawWaveLayer(_biomeWaveKey('wave_back'),  waterY, -27, 0.3, -0.5);
-}
-function drawWavesMid(waterY) {
-  drawWaveLayer(_biomeWaveKey('wave_mid'),   waterY, -18, 0.6, -0.25);
-}
-function drawWavesFront(waterY) {
-  drawWaveLayer(_biomeWaveKey('wave_front'), waterY,  -9, 1.0,  0.0);
-}
-
-
-function drawWaveLayer(assetKey, waterY, yOffset, speed, bobPhase) {
-  const tex = Assets.get(assetKey);
-  if (!tex) return;
-  const g   = G;
-  const bob = Math.sin(g.frame * 0.04 + bobPhase) * 3;
-  const y   = waterY + yOffset + bob;
-  const tileW  = tex._tileW || tex.width;
-  const offset = ((g.frame * speed) % tileW + tileW) % tileW;
-
-  _stateCtx.drawImage(tex, offset, y);
-  _stateCtx.drawImage(tex, offset - tileW, y);
-}
-
-// INTRO / SURFACE: single rope from boat centre to hook.
-function drawRope(boatY, hookY) {
-  const g = G;
-  const ropeX = g.cW / 2;
-  const ropeStartY = boatY + boatHullOffset();
-  if (hookY <= ropeStartY) return;
-  _stateCtx.save();
-  _stateCtx.strokeStyle = '#c8a96e';
-  _stateCtx.lineWidth   = 2;
-  _stateCtx.globalAlpha = 0.75;
-  _stateCtx.beginPath();
-  _stateCtx.moveTo(ropeX, ropeStartY);
-  _stateCtx.lineTo(ropeX, hookY);
-  _stateCtx.stroke();
-  _stateCtx.restore();
-}
-
-// Depth gauge gradient cached in local coords; caller translates.
 let _depthBarGrad = null;
 let _depthBarGradKey = '';
+
 function _getDepthBarGradient(barY, barH) {
   const key = barY + '|' + barH;
   if (_depthBarGradKey === key) return _depthBarGrad;
@@ -488,12 +508,20 @@ function drawPauseOverlay() {
   ctx.restore();
 }
 
-function _getDepthProgress(g) {
-  if (g.phase === PH.SURFACE || g.phase === PH.RESULT) return 1;
-  if (g.phase === PH.FISHING) return Math.min(-g.worldOffset / g.WORLD_H, 1);
-  return 0;
+// ─── 8. PRIMITIVES ────────────────────────────────────────────────────────────
+// Low-level canvas helpers used across multiple draw functions above.
+
+// Invalidate all gradient caches (called on canvas resize).
+function _invalidateGradientCache() {
+  _gradCache.bg.key = '';
+  _gradCache.shimmer.key = '';
+  _gradCache.sand.key = '';
+  _gradCache.depth.key = '';
+  _depthBarGradKey = '';
+  _seabedDecoCache.key = '';
 }
 
+// Rounded rectangle path (no fill/stroke — caller decides).
 function _drawRoundRect(x, y, w, h, r) {
   if (w <= 0) return;
   _stateCtx.beginPath();
@@ -503,6 +531,7 @@ function _drawRoundRect(x, y, w, h, r) {
   _stateCtx.lineTo(x, y + r); _stateCtx.quadraticCurveTo(x, y, x + r, y); _stateCtx.closePath();
 }
 
+// Emoji fallback renderer — used when a sprite image fails to load.
 function drawEmoji(em, x, y, sz, alpha, rot) {
   if (alpha === undefined) alpha = 1;
   if (rot === undefined) rot = 0;

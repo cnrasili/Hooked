@@ -1,5 +1,9 @@
-// Spawning, collision, floating text.
+// Spawning, collision detection, and floating score text.
 'use strict';
+
+// ─── 1. SPAWN ─────────────────────────────────────────────────────────────────
+// Objects (fish / trash) are created at the top of the screen and fall toward
+// the hook. Biome fish pools and the bad-object ratio are defined in config.js.
 
 function _resolveSprite(biomeId, baseKey) {
   if (!baseKey) return null;
@@ -10,6 +14,7 @@ function _resolveSprite(biomeId, baseKey) {
   return Assets.get(baseKey) ? baseKey : null;
 }
 
+// Entry point called by _spawnAndUpdateObjects in game.js.
 function spawnObject() {
   const g   = G;
   if (g.objects.length >= DRAW.OBJECT_MAX) return;
@@ -53,6 +58,10 @@ function _pushObject(g, props) {
     alpha: 1, caught: false,
   }, props, { x }));
 }
+
+// ─── 2. COLLISION ─────────────────────────────────────────────────────────────
+// AABB test between hook rectangle and each object's bounding box.
+// Fish increment the catch counter; trash reduces Hook HP (unless shielded).
 
 function checkCollisions() {
   const g        = G;
@@ -103,8 +112,11 @@ function _onFishCaught(g, o) {
   updateHUD();
 }
 
+// ─── 3. FLOAT TEXT ────────────────────────────────────────────────────────────
+// DOM element pool reused across spawns to avoid GC pressure.
+// Animation is driven by the Web Animations API (animate()) with a WeakMap
+// storing active Animation handles so stacked texts can be cancelled cleanly.
 
-// Floating text (object pool + Web Animations API).
 const _floatPool = [];
 const _floatAnimations = new WeakMap();
 let _floatLayer = null;
