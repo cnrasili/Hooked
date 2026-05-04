@@ -483,6 +483,8 @@ function _spawnAndUpdateObjects(g, cfg, cH) {
 
     if (o.y < cullMax && o.alpha > 0) {
       objs[write++] = o;
+    } else {
+      releaseObject(o);  // return struct to pool — no garbage created
     }
   }
   objs.length = write;
@@ -549,6 +551,8 @@ function startLevel(idx) {
   if (shield || worm) Save.flush();
 
   const riseSpeed = Math.max(0.15, cfg.riseSpeed - slowBonus);
+
+  initObjectPool(DRAW.OBJECT_MAX);  // pre-allocate pool for this level
 
   G = _buildGameState(cW, cH, cfg, idx, {
     HOOK_W: 78,

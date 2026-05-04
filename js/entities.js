@@ -1,9 +1,47 @@
 // Spawning, collision detection, and floating score text.
 'use strict';
 
-// ─── 1. SPAWN ─────────────────────────────────────────────────────────────────
-// Objects (fish / trash) are created at the top of the screen and fall toward
-// the hook. Biome fish pools and the bad-object ratio are defined in config.js.
+// ─── 1. OBJECT POOL ───────────────────────────────────────────────────────────
+// Pre-allocated structs are reused instead of creating a new {} each spawn.
+// When an object exits the screen (or fades out after being caught),
+// releaseObject() resets it and returns it to _pool. The next spawnObject()
+// call pulls from _pool via _acquireObject() — zero new allocations mid-game.
+//
+// initObjectPool() is called once per level (in startLevel, game.js) so the
+// pool size always matches the level's OBJECT_MAX cap.
+
+const _pool = [];
+
+function initObjectPool(size) {
+  _pool.length = 0;
+  for (let i = 0; i < size; i++) {
+    _pool.push(_makeBlankObject());
+  }
+}
+
+function _makeBlankObject() {
+  return { x: 0, y: 0, vy: 0, vx: 0, sz: 60,
+           bad: false, sprite: null, em: null,
+           wb: 0, alpha: 1, caught: false };
+}
+
+// Returns a pooled object (or a fresh one if the pool is empty).
+function _acquireObject() {
+  return _pool.length > 0 ? _pool.pop() : _makeBlankObject();
+}
+
+// Resets an object and returns it to the pool for future reuse.
+function releaseObject(o) {
+  o.caught = false;
+  o.alpha  = 1;
+  o.sprite = null;
+  o.em     = null;
+  _pool.push(o);
+}
+
+// ─── 2. SPAWN ─────────────────────────────────────────────────────────────────
+// Objects (fish / trash) are configured and pushed into g.objects.
+// Biome fish pools and the bad-object ratio are defined in config.js.
 
 function _resolveSprite(biomeId, baseKey) {
   if (!baseKey) return null;
@@ -50,16 +88,24 @@ function _pushObject(g, props) {
   const half = sz / 2;
   const rawX = props.x != null ? props.x : sz / 2 + Math.random() * (g.cW - sz);
   const x    = Math.max(half, Math.min(g.cW - half, rawX));
-  g.objects.push(Object.assign({
-    y: -sz,
-    vy: 1, vx: 0, sz, bad: false,
-    sprite: null, em: null,
-    wb: Math.random() * Math.PI * 2,
-    alpha: 1, caught: false,
-  }, props, { x }));
+
+  // Acquire a reusable struct from the pool instead of allocating a new {}.
+  const o = _acquireObject();
+  o.y      = -sz;
+  o.x      = x;
+  o.sz     = sz;
+  o.vy     = props.vy  !== undefined ? props.vy  : 1;
+  o.vx     = props.vx  !== undefined ? props.vx  : 0;
+  o.bad    = props.bad !== undefined ? props.bad : false;
+  o.sprite = props.sprite || null;
+  o.em     = props.em    || null;
+  o.wb     = Math.random() * Math.PI * 2;
+  o.alpha  = 1;
+  o.caught = false;
+  g.objects.push(o);
 }
 
-// ─── 2. COLLISION ─────────────────────────────────────────────────────────────
+// ─── 3. COLLISION ─────────────────────────────────────────────────────────────
 // AABB test between hook rectangle and each object's bounding box.
 // Fish increment the catch counter; trash reduces Hook HP (unless shielded).
 
@@ -112,7 +158,7 @@ function _onFishCaught(g, o) {
   updateHUD();
 }
 
-// ─── 3. FLOAT TEXT ────────────────────────────────────────────────────────────
+// ─── 4. FLOAT TEXT ────────────────────────────────────────────────────────────
 // DOM element pool reused across spawns to avoid GC pressure.
 // Animation is driven by the Web Animations API (animate()) with a WeakMap
 // storing active Animation handles so stacked texts can be cancelled cleanly.
