@@ -1,34 +1,9 @@
 // Canvas setup, state, game loop, phase transitions.
 'use strict';
 
-function screenTransition(onMid) {
-  onMid();
-  return Promise.resolve();
-}
+// ─── 1. CANVAS SETUP ──────────────────────────────────────────────────────────
 
-// Animated transition used only when entering a level.
-const _levelTransOverlay = document.getElementById('levelTransOverlay');
-
-function levelTransition(onMid) {
-  return new Promise(resolve => {
-    // Fade in.
-    _levelTransOverlay.classList.add('lto-in');
-    _levelTransOverlay.addEventListener('animationend', function onIn() {
-      _levelTransOverlay.removeEventListener('animationend', onIn);
-      onMid();
-      // Fade out.
-      _levelTransOverlay.classList.remove('lto-in');
-      _levelTransOverlay.classList.add('lto-out');
-      _levelTransOverlay.addEventListener('animationend', function onOut() {
-        _levelTransOverlay.removeEventListener('animationend', onOut);
-        _levelTransOverlay.classList.remove('lto-out');
-        resolve();
-      });
-    });
-  });
-}
-
-// Fixed timestep + accumulator.
+// Fixed-timestep constants.
 const FIXED_DT_MS  = 1000 / 60;
 const MAX_FRAME_MS = 100;   // Cap on a single frame delta.
 const MAX_STEPS    = 3;     // Max physics ticks per render.
@@ -82,16 +57,16 @@ function _rescaleGameState(g, oldW, oldH, newW, newH) {
   g.cW = newW;
   g.cH = newH;
 
-  g.HOOK_Y    = Math.round(newH * 0.8);
+  g.HOOK_Y          = Math.round(newH * 0.8);
   g.boatTargetY     = Math.round(newH * 0.35);
   g.surfaceBoatY    = Math.round(newH * 0.15);
-  g.hookIntroY = Math.round(newH * 0.35) + 20;
+  g.hookIntroY      = Math.round(newH * 0.35) + 20;
 
   const oldWorldH = g.WORLD_H;
   g.WORLD_H       = g.cfg.worldScale * newH;
   g.worldOffset  *= (g.WORLD_H / oldWorldH);
 
-  g.boatScreenY *= sy;
+  g.boatScreenY  *= sy;
   g.hookSurfaceY *= sy;
 
   const halfHook = g.HOOK_W / 2;
@@ -102,7 +77,6 @@ function _rescaleGameState(g, oldW, oldH, newW, newH) {
     o.x = Math.max(halfSz, Math.min(newW - halfSz, o.x * sx));
     o.y *= sy;
   });
-
 }
 
 // Initial sizing.
@@ -119,6 +93,37 @@ window.addEventListener('resize', () => {
   });
 });
 
+// ─── 2. SCREEN TRANSITIONS ────────────────────────────────────────────────────
+
+const _levelTransOverlay = document.getElementById('levelTransOverlay');
+
+function screenTransition(onMid) {
+  onMid();
+  return Promise.resolve();
+}
+
+// Animated transition used only when entering a level.
+function levelTransition(onMid) {
+  return new Promise(resolve => {
+    // Fade in.
+    _levelTransOverlay.classList.add('lto-in');
+    _levelTransOverlay.addEventListener('animationend', function onIn() {
+      _levelTransOverlay.removeEventListener('animationend', onIn);
+      onMid();
+      // Fade out.
+      _levelTransOverlay.classList.remove('lto-in');
+      _levelTransOverlay.classList.add('lto-out');
+      _levelTransOverlay.addEventListener('animationend', function onOut() {
+        _levelTransOverlay.removeEventListener('animationend', onOut);
+        _levelTransOverlay.classList.remove('lto-out');
+        resolve();
+      });
+    });
+  });
+}
+
+// ─── 3. ASSET LOADING ─────────────────────────────────────────────────────────
+
 // Build the asset load queue from SKINS + BIOME_SKINS overrides.
 const _assetQueue = [];
 Object.entries(SKINS).forEach(([id, path]) => {
@@ -133,9 +138,9 @@ if (typeof BIOME_SKINS === 'object' && BIOME_SKINS) {
 }
 
 // Loading screen controller.
-const _lsEl   = document.getElementById('loadingScreen');
-const _lsBar  = document.getElementById('lsBar');
-const _lsText = document.getElementById('lsText');
+const _lsEl    = document.getElementById('loadingScreen');
+const _lsBar   = document.getElementById('lsBar');
+const _lsText  = document.getElementById('lsText');
 const _lsTotal = _assetQueue.length;
 let   _lsDone  = 0;
 const _lsStart = performance.now();
@@ -163,23 +168,6 @@ function _lsHide() {
     setTimeout(() => { _lsEl.setAttribute('hidden', ''); }, 500);
   }, wait);
 }
-
-Assets._onProgress = _lsUpdate;
-
-const _assetLoads  = _assetQueue.map(([key, path]) => Assets.load(key, path));
-// Waves use a separate loader; gate on both.
-const _waveReady   = Assets.generateWaves(_canvasCSSWidth || 450);
-const _assetsReady = Promise.all([Promise.all(_assetLoads), _waveReady])
-  .then(() => {
-    if (_lsText) _lsText.textContent = 'Warming up textures…';
-    // Let the browser paint the 100% bar before warmup.
-    return new Promise(r => requestAnimationFrame(() => r()));
-  })
-  .then(() => _warmupAllAssets())
-  .then(() => _lsHide());
-
-// Edge case: no assets → progress callback never fires, still hide.
-if (_lsTotal === 0) _waveReady.then(() => _warmupAllAssets()).then(() => _lsHide());
 
 // Pre-warm every biome's caches and every asset so first frame has no spike.
 function _warmupAllAssets() {
@@ -231,13 +219,13 @@ function _warmupAllAssets() {
 
     // Emoji rasterization: warm every (emoji × font-spec) pair used at render time.
     const EMOJIS_TO_WARM = [
-      '\u{1F5D1}\uFE0F', '\u{1F9F4}', '\u{1F964}', '\u{1FAA3}', '\u{1F96B}',
-      '\u{1F33F}', '\u{1FAB8}', '\u2B50', '\u{1F41A}',
+      '\u{1F5D1}️', '\u{1F9F4}', '\u{1F964}', '\u{1FAA3}', '\u{1F96B}',
+      '\u{1F33F}', '\u{1FAB8}', '⭐', '\u{1F41A}',
       '\u{1FAB5}', '\u{1F344}', '\u{1FAB1}',
-      '\u2744\uFE0F', '\u{1F9CA}', '\u{1F41F}',
-      '\u{1FA9D}', '\u{1F6E1}\uFE0F', '\u{1F494}', '\u{1FA99}',
+      '❄️', '\u{1F9CA}', '\u{1F41F}',
+      '\u{1FA9D}', '\u{1F6E1}️', '\u{1F494}', '\u{1FA99}',
       '\u{1F512}', '\u{1F30A}', '\u{1F507}', '\u{1F50A}',
-      '\u2693', '\u{1F3AF}', '\u{1F3A3}',
+      '⚓', '\u{1F3AF}', '\u{1F3A3}',
     ];
     // Font cache is keyed by font string — warm each stack used in draw.js.
     const WARM_FONT_SPECS = [
@@ -276,7 +264,7 @@ function _warmupAllAssets() {
           el.style.animation = 'none';
           el.style.left = '-9999px';
           el.style.top  = '-9999px';
-          el.textContent = '\u200B'; // zero-width space, warms the render pipeline
+          el.textContent = '​'; // zero-width space, warms the render pipeline
           layer.appendChild(el);
           _floatPool.push(el);
         }
@@ -314,118 +302,6 @@ function _warmupAllAssets() {
     // Yield two rAFs so the GPU can flush uploads before play starts.
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
-}
-
-Input.init(_stateCanvas);
-
-function startLevel(idx) {
-  if (animId) { cancelAnimationFrame(animId); animId = null; }
-  _dom.resultOverlay.classList.add('hidden');
-  _dom.resultOverlay.classList.remove('show');
-  stopVictory();
-
-  const cW  = _canvasCSSWidth;
-  const cH  = _canvasCSSHeight;
-  const cfg = LEVELS[idx];
-
-  const extraHP    = Save.upgradeEffect('extraHP');
-  const slowBonus  = Save.upgradeEffect('slowRise');
-
-  const shield = Save.usePowerup('shield');
-  const worm   = Save.usePowerup('worm');
-  if (shield || worm) Save.flush();
-
-  const riseSpeed = Math.max(0.15, cfg.riseSpeed - slowBonus);
-
-  G = _buildGameState(cW, cH, cfg, idx, {
-    HOOK_W: 78,
-    HOOK_H: 60,
-    WORLD_H: cfg.worldScale * cH,
-    hookHP: cfg.hookHP + extraHP,
-    riseSpeed,
-    spawnEvery: cfg.spawnEvery,
-    shieldActive: shield,
-    wormActive: worm,
-  });
-
-  updateHUD();
-  _dom.phaseDisp.textContent = 'Casting hook\u2026';
-  _dom.gameScreen.classList.remove('hidden');
-  _dom.menuScreen.classList.add('hidden');
-  _dom.shopScreen.classList.add('hidden');
-
-  _warmupLevelAssets(G);
-  playLevelMusic(idx);
-
-  const hint = document.getElementById('controlsHint');
-  if (hint) {
-    hint.classList.add('show');
-    clearTimeout(hint._hideTimer);
-    hint._hideTimer = setTimeout(() => hint.classList.remove('show'), 3200);
-  }
-
-  _lastTime    = performance.now();
-  _accumulator = 0;
-  animId = requestAnimationFrame(gameLoop);
-}
-
-function _buildGameState(cW, cH, cfg, idx, overrides) {
-  const HOOK_Y = Math.round(cH * 0.8);
-  return {
-    cW, cH, cfg, idx,
-    phase:   PH.INTRO,
-    frame:   0,
-    caught:  0,
-    gold:    0,
-    hookHP:     overrides.hookHP,
-    maxHookHP:  overrides.hookHP,
-
-    HOOK_W: overrides.HOOK_W,
-    HOOK_H: overrides.HOOK_H,
-    HOOK_Y,
-    WORLD_H:    overrides.WORLD_H,
-    riseSpeed:  overrides.riseSpeed,
-    spawnEvery: overrides.spawnEvery,
-
-    worldOffset:     overrides.WORLD_H,
-    boatTargetY:     Math.round(cH * 0.35),
-    surfaceBoatY:    Math.round(cH * 0.15),
-    boatScreenY:     Math.round(cH * 0.35),
-    hookIntroY: Math.round(cH * 0.35) + 20,
-    introPhase: 'WAIT',
-    introWait:  0,
-
-    surfaceTimer: 0,
-    hookSurfaceY:  0,
-    hookX:         Math.round(cW / 2),
-
-    objects:  [],
-    isPaused: false,
-
-    spawnLaneOrder: _newLaneOrder(),
-    spawnLaneIdx:   0,
-    shieldActive: overrides.shieldActive,
-    wormActive:   overrides.wormActive,
-    hookPunch: 0,
-  };
-}
-
-// Spawn lane helpers.
-function _newLaneOrder() {
-  const arr = SPAWN_LANES.slice();
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
-  }
-  return arr;
-}
-
-function nextSpawnX(g) {
-  if (g.spawnLaneIdx >= g.spawnLaneOrder.length) {
-    g.spawnLaneOrder = _newLaneOrder();
-    g.spawnLaneIdx   = 0;
-  }
-  return Math.round(g.spawnLaneOrder[g.spawnLaneIdx++] * g.cW);
 }
 
 // Per-level warmup: draw every sprite + build every cache before the first frame.
@@ -466,21 +342,30 @@ function _warmupLevelAssets(g) {
   ctx.clearRect(0, 0, cW, cH);
 }
 
-// Skip intro on tap.
-function skipIntro() {
-  if (!G || G.phase !== PH.INTRO) return;
-  G.boatScreenY     = -150;
-  G.hookIntroY = G.HOOK_Y;
-  G.worldOffset     = 0;
-  G.phase = PH.FISHING;
-  _dom.phaseDisp.textContent = 'Hauling up\u2026';
-  sfxSplash();
-}
-_stateCanvas.addEventListener('pointerdown', skipIntro);
+Assets._onProgress = _lsUpdate;
+
+const _assetLoads  = _assetQueue.map(([key, path]) => Assets.load(key, path));
+// Waves use a separate loader; gate on both.
+const _waveReady   = Assets.generateWaves(_canvasCSSWidth || 450);
+const _assetsReady = Promise.all([Promise.all(_assetLoads), _waveReady])
+  .then(() => {
+    if (_lsText) _lsText.textContent = 'Warming up textures…';
+    // Let the browser paint the 100% bar before warmup.
+    return new Promise(r => requestAnimationFrame(() => r()));
+  })
+  .then(() => _warmupAllAssets())
+  .then(() => _lsHide());
+
+// Edge case: no assets → progress callback never fires, still hide.
+if (_lsTotal === 0) _waveReady.then(() => _warmupAllAssets()).then(() => _lsHide());
+
+Input.init(_stateCanvas);
+
+// ─── 4. GAME LOOP ─────────────────────────────────────────────────────────────
 
 // Error boundary: stop the loop after too many consecutive frame errors.
-let _loopErrorCount     = 0;
-const LOOP_ERROR_LIMIT  = 30;
+let _loopErrorCount    = 0;
+const LOOP_ERROR_LIMIT = 30;
 
 function gameLoop(now) {
   if (!G) return;
@@ -531,6 +416,8 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// ─── 5. UPDATE ────────────────────────────────────────────────────────────────
+
 function update() {
   const g = G;
 
@@ -542,35 +429,6 @@ function update() {
   if      (g.phase === PH.INTRO)   updateIntro();
   else if (g.phase === PH.FISHING) updateFishing();
   else if (g.phase === PH.SURFACE) updateSurface();
-}
-
-function updateIntro() {
-  const g = G;
-
-  switch (g.introPhase) {
-    case 'WAIT':
-      g.introWait++;
-      if (g.introWait >= DRAW.INTRO_WAIT) g.introPhase = 'DROP_NET';
-      break;
-
-    case 'DROP_NET':
-      if (g.hookIntroY < g.HOOK_Y) g.hookIntroY += DRAW.INTRO_HOOK_SPEED;
-      else { g.hookIntroY = g.HOOK_Y; g.introPhase = 'SAIL_OUT'; }
-      break;
-
-    case 'SAIL_OUT':
-      if (g.boatScreenY > -120) g.boatScreenY -= DRAW.INTRO_SAIL_SPEED;
-      g.worldOffset = Math.max(0, g.worldOffset - DRAW.INTRO_WORLD_SPEED);
-      if (g.boatScreenY <= -120 && g.worldOffset <= 0) {
-        g.boatScreenY     = -150;
-        g.hookIntroY = g.HOOK_Y;
-        g.worldOffset     = 0;
-        g.phase = PH.FISHING;
-        _dom.phaseDisp.textContent = 'Hauling up\u2026';
-        sfxSplash();
-      }
-      break;
-  }
 }
 
 function updateFishing() {
@@ -595,13 +453,12 @@ function updateFishing() {
 }
 
 function _spawnAndUpdateObjects(g, cfg, cH) {
-  // Objects drop straight down; no horizontal drift.
   if (g.frame % g.spawnEvery === 0) spawnObject();
 
-  const objs        = g.objects;
-  const riseSpeed   = g.riseSpeed;
-  const cW          = g.cW;
-  const cullMax     = cH + DRAW.COLLISION_CULL;
+  const objs      = g.objects;
+  const riseSpeed = g.riseSpeed;
+  const cW        = g.cW;
+  const cullMax   = cH + DRAW.COLLISION_CULL;
   const wormOn    = !!g.wormActive;
   const wormRange = cW * 0.45;
   const hookX     = g.hookX;
@@ -631,6 +488,35 @@ function _spawnAndUpdateObjects(g, cfg, cH) {
   objs.length = write;
 }
 
+function updateIntro() {
+  const g = G;
+
+  switch (g.introPhase) {
+    case 'WAIT':
+      g.introWait++;
+      if (g.introWait >= DRAW.INTRO_WAIT) g.introPhase = 'DROP_NET';
+      break;
+
+    case 'DROP_NET':
+      if (g.hookIntroY < g.HOOK_Y) g.hookIntroY += DRAW.INTRO_HOOK_SPEED;
+      else { g.hookIntroY = g.HOOK_Y; g.introPhase = 'SAIL_OUT'; }
+      break;
+
+    case 'SAIL_OUT':
+      if (g.boatScreenY > -120) g.boatScreenY -= DRAW.INTRO_SAIL_SPEED;
+      g.worldOffset = Math.max(0, g.worldOffset - DRAW.INTRO_WORLD_SPEED);
+      if (g.boatScreenY <= -120 && g.worldOffset <= 0) {
+        g.boatScreenY = -150;
+        g.hookIntroY  = g.HOOK_Y;
+        g.worldOffset = 0;
+        g.phase = PH.FISHING;
+        _dom.phaseDisp.textContent = 'Hauling up…';
+        sfxSplash();
+      }
+      break;
+  }
+}
+
 function updateSurface() {
   const g = G;
   g.surfaceTimer++;
@@ -642,3 +528,127 @@ function updateSurface() {
     showResult();
   }
 }
+
+// ─── 6. LEVEL MANAGEMENT ──────────────────────────────────────────────────────
+
+function startLevel(idx) {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  _dom.resultOverlay.classList.add('hidden');
+  _dom.resultOverlay.classList.remove('show');
+  stopVictory();
+
+  const cW  = _canvasCSSWidth;
+  const cH  = _canvasCSSHeight;
+  const cfg = LEVELS[idx];
+
+  const extraHP   = Save.upgradeEffect('extraHP');
+  const slowBonus = Save.upgradeEffect('slowRise');
+
+  const shield = Save.usePowerup('shield');
+  const worm   = Save.usePowerup('worm');
+  if (shield || worm) Save.flush();
+
+  const riseSpeed = Math.max(0.15, cfg.riseSpeed - slowBonus);
+
+  G = _buildGameState(cW, cH, cfg, idx, {
+    HOOK_W: 78,
+    HOOK_H: 60,
+    WORLD_H: cfg.worldScale * cH,
+    hookHP: cfg.hookHP + extraHP,
+    riseSpeed,
+    spawnEvery: cfg.spawnEvery,
+    shieldActive: shield,
+    wormActive: worm,
+  });
+
+  updateHUD();
+  _dom.phaseDisp.textContent = 'Casting hook…';
+  _dom.gameScreen.classList.remove('hidden');
+  _dom.menuScreen.classList.add('hidden');
+  _dom.shopScreen.classList.add('hidden');
+
+  _warmupLevelAssets(G);
+  playLevelMusic(idx);
+
+  const hint = document.getElementById('controlsHint');
+  if (hint) {
+    hint.classList.add('show');
+    clearTimeout(hint._hideTimer);
+    hint._hideTimer = setTimeout(() => hint.classList.remove('show'), 3200);
+  }
+
+  _lastTime    = performance.now();
+  _accumulator = 0;
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function _buildGameState(cW, cH, cfg, idx, overrides) {
+  const HOOK_Y = Math.round(cH * 0.8);
+  return {
+    cW, cH, cfg, idx,
+    phase:   PH.INTRO,
+    frame:   0,
+    caught:  0,
+    gold:    0,
+    hookHP:    overrides.hookHP,
+    maxHookHP: overrides.hookHP,
+
+    HOOK_W: overrides.HOOK_W,
+    HOOK_H: overrides.HOOK_H,
+    HOOK_Y,
+    WORLD_H:    overrides.WORLD_H,
+    riseSpeed:  overrides.riseSpeed,
+    spawnEvery: overrides.spawnEvery,
+
+    worldOffset:  overrides.WORLD_H,
+    boatTargetY:  Math.round(cH * 0.35),
+    surfaceBoatY: Math.round(cH * 0.15),
+    boatScreenY:  Math.round(cH * 0.35),
+    hookIntroY:   Math.round(cH * 0.35) + 20,
+    introPhase:   'WAIT',
+    introWait:    0,
+
+    surfaceTimer:  0,
+    hookSurfaceY:  0,
+    hookX:         Math.round(cW / 2),
+
+    objects:  [],
+    isPaused: false,
+
+    spawnLaneOrder: _newLaneOrder(),
+    spawnLaneIdx:   0,
+    shieldActive: overrides.shieldActive,
+    wormActive:   overrides.wormActive,
+    hookPunch:    0,
+  };
+}
+
+// Spawn lane helpers: Fisher-Yates shuffle keeps objects spread across lanes.
+function _newLaneOrder() {
+  const arr = SPAWN_LANES.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+function nextSpawnX(g) {
+  if (g.spawnLaneIdx >= g.spawnLaneOrder.length) {
+    g.spawnLaneOrder = _newLaneOrder();
+    g.spawnLaneIdx   = 0;
+  }
+  return Math.round(g.spawnLaneOrder[g.spawnLaneIdx++] * g.cW);
+}
+
+// Skip intro on tap.
+function skipIntro() {
+  if (!G || G.phase !== PH.INTRO) return;
+  G.boatScreenY = -150;
+  G.hookIntroY  = G.HOOK_Y;
+  G.worldOffset = 0;
+  G.phase = PH.FISHING;
+  _dom.phaseDisp.textContent = 'Hauling up…';
+  sfxSplash();
+}
+_stateCanvas.addEventListener('pointerdown', skipIntro);
