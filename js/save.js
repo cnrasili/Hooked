@@ -1,15 +1,23 @@
-// Persistent data (localStorage).
+// Persistent player data via localStorage.
 'use strict';
+
+// ─── Save Object ──────────────────────────────────────────────────────────────
+// Single namespace for all persistence. init() is called at file load;
+// all writes go through flush() (debounced) or flushNow() (immediate).
 
 const Save = {
   _key: 'cf_save_v1',
   data: { gold: 0, bestScore: 0, lastLevel: 0, highestUnlocked: 0, upgrades: {}, powerups: {} },
 
+  // ── Init ───────────────────────────────────────────────────────────────────
+  // Load from localStorage, fill missing keys with defaults, clamp indices
+  // to current LEVELS length in case the level list changed since last save.
+
   init() {
     try {
       const raw = JSON.parse(localStorage.getItem(this._key));
       if (raw) this.data = raw;
-    } catch { /* corrupt data */ }
+    } catch { /* corrupt data — fall through to defaults */ }
 
     if (this.data.gold            === undefined) this.data.gold            = 0;
     if (this.data.bestScore       === undefined) this.data.bestScore       = 0;
@@ -42,6 +50,8 @@ const Save = {
     this.flushNow();
   },
 
+  // ── Level unlock ───────────────────────────────────────────────────────────
+
   markLevelPassed(idx) {
     const unlocked = Math.min(idx + 1, LEVELS.length - 1);
     if (unlocked > this.data.highestUnlocked) {
@@ -50,6 +60,10 @@ const Save = {
     }
   },
   isUnlocked(idx) { return idx <= this.data.highestUnlocked; },
+
+  // ── Write ──────────────────────────────────────────────────────────────────
+  // flush() debounces writes to avoid hammering localStorage on rapid changes.
+  // flushNow() writes immediately (e.g. on page unload or after a purchase).
 
   _flushTimer: null,
   flush() {
@@ -67,6 +81,8 @@ const Save = {
       console.warn('[Save] localStorage write failed:', err);
     }
   },
+
+  // ── Accessors ──────────────────────────────────────────────────────────────
 
   get gold()      { return this.data.gold; },
   set gold(v)     { this.data.gold = Math.max(0, v); },
@@ -89,6 +105,8 @@ const Save = {
     if (this.data.powerups[id] > 0) { this.data.powerups[id]--; return true; }
     return false;
   },
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
 
   resetAll() {
     this.data = { gold: 0, bestScore: 0, lastLevel: 0, highestUnlocked: 0, upgrades: {}, powerups: {} };

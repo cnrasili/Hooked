@@ -1,14 +1,17 @@
-// Config: constants, levels, biomes, shop, entities.
+// Game constants: biomes, levels, rendering, economy, upgrades, powerups.
 'use strict';
 
-// Biomes: Ocean (easy), Swamp (medium), Polar (hard).
+// ─── 1. BIOMES ────────────────────────────────────────────────────────────────
+// Each biome defines its colour palette (shallow/deep top-bottom stops for the
+// depth gradient), sand colour, seabed decorations, and the fish sprite pool.
+
 const BIOMES = {
   ocean: {
     id: 'ocean', label: 'Ocean', difficulty: 'easy', chapter: 1,
     shallowTop: [0x1a, 0xb4, 0xd8], shallowBot: [0x0d, 0x8c, 0xb5],
     deepTop:    [0x06, 0x20, 0x40], deepBot:    [0x02, 0x10, 0x1e],
     sandRGB: '210,180,120',
-    seabedDeco: ['\u{1F33F}','\u{1FAB8}','\u2B50','\u{1F41A}'],
+    seabedDeco: ['\u{1F33F}','\u{1FAB8}','⭐','\u{1F41A}'],
     skinKey: 'ocean',
     fishKeys: ['fish1', 'fish2', 'fish3', 'fish4'],
   },
@@ -26,11 +29,16 @@ const BIOMES = {
     shallowTop: [0xc6, 0xe4, 0xf2], shallowBot: [0x7e, 0xb5, 0xd2],
     deepTop:    [0x1e, 0x3a, 0x5e], deepBot:    [0x08, 0x14, 0x28],
     sandRGB: '200,220,235',
-    seabedDeco: ['\u2744\uFE0F','\u{1F9CA}','\u2B50','\u{1F41F}'],
+    seabedDeco: ['❄️','\u{1F9CA}','⭐','\u{1F41F}'],
     skinKey: 'polar',
     fishKeys: ['fish1', 'fish2', 'fish3'],
   },
 };
+
+// ─── 2. LEVELS ────────────────────────────────────────────────────────────────
+// Ordered array of level configs. Each level maps to one biome and scales
+// difficulty through riseSpeed, spawnEvery (ticks between spawns), and badRatio
+// (probability that a spawned object is trash rather than fish).
 
 const LEVELS = [
   {
@@ -50,6 +58,11 @@ const LEVELS = [
   },
 ];
 
+// ─── 3. PHASE & RENDER CONSTANTS ──────────────────────────────────────────────
+// PH enumerates the four game phases (state machine used across game.js, draw.js).
+// Boat and wave constants control sprite layout on screen.
+// DRAW bundles tuning values for collision boxes, object counts, and intro timing.
+
 const PH = { INTRO: 'intro', FISHING: 'fishing', SURFACE: 'surface', RESULT: 'result' };
 
 // Boat drawing constants.
@@ -68,34 +81,40 @@ const SPRITE_SCALE = {
   trash4: 2.0, trash5: 2.0, trash6: 2.0,
 };
 
-const GOLD_PER_FISH = 2;
-
-// Fixed spawn lanes (Fisher-Yates shuffled) for even horizontal distribution.
-const SPAWN_LANES = [0.15, 0.325, 0.5, 0.675, 0.85];
-
 const DRAW = {
-  HOOK_TOP_OFFSET:   15,
-  HOOK_BOT_OFFSET:   10,
+  HOOK_TOP_OFFSET:   15,   // AABB top padding above hook sprite.
+  HOOK_BOT_OFFSET:   10,   // AABB bottom padding below hook sprite.
   COLLISION_CULL:   80,
-  OBJECT_MAX:       60,
-  FLOAT_POOL_MAX:   12,
-  INTRO_WAIT:       60,
+  OBJECT_MAX:       60,    // Hard cap on simultaneous objects.
+  FLOAT_POOL_MAX:   12,    // Max pooled DOM float-text elements.
+  INTRO_WAIT:       60,    // Frames to hold at surface before descending.
   INTRO_HOOK_SPEED:  1.8,
   INTRO_SAIL_SPEED: 1.6,
   INTRO_WORLD_SPEED: 8,
   SURFACE_SPEED:    2.5,
 };
 
+// ─── 4. ECONOMY ───────────────────────────────────────────────────────────────
+// Gold earned per catch and the fixed horizontal spawn lane positions.
+// Lanes are Fisher-Yates shuffled each level for even distribution.
+
+const GOLD_PER_FISH = 2;
+const SPAWN_LANES = [0.15, 0.325, 0.5, 0.675, 0.85];
+
+// ─── 5. UPGRADES & POWERUPS ───────────────────────────────────────────────────
+// Upgrades are permanent multi-level purchases; powerups are consumable
+// one-shot items. Both are rendered by the shop in ui.js.
+
 const UPGRADES = [
   {
-    id: 'extraHP', icon: '\u{1F6E1}\uFE0F', spriteKey: 'iconHook', name: 'Reinforced Hook',
+    id: 'extraHP', icon: '\u{1F6E1}️', spriteKey: 'iconHook', name: 'Reinforced Hook',
     desc: 'Adds +1 max HP to the hook per level',
     costs: [20, 45, 90], max: 3,
     effect: (lvl) => lvl,
     preview: (lvl) => `+${lvl} HP`,
   },
   {
-    id: 'slowRise', icon: '\u231B', name: 'Slow Winch',
+    id: 'slowRise', icon: '⌛', name: 'Slow Winch',
     desc: 'Reduces rise speed (more time to catch)',
     costs: [25, 55, 100], max: 3,
     effect: (lvl) => lvl * 0.08,
@@ -104,6 +123,6 @@ const UPGRADES = [
 ];
 
 const POWERUPS = [
-  { id: 'shield', icon: '🛡️', spriteKey: 'iconShield', name: 'Shield', desc: 'Blocks first trash hit', cost: 8  , max: 3 },
-  { id: 'worm',   icon: '🪱',         spriteKey: 'iconWorm', name: 'Worm',   desc: 'Fish drift toward hook', cost: 12 , max: 3 },
+  { id: 'shield', icon: '🛡️', spriteKey: 'iconShield', name: 'Shield', desc: 'Blocks first trash hit', cost: 8,  max: 3 },
+  { id: 'worm',   icon: '🪱', spriteKey: 'iconWorm',   name: 'Worm',   desc: 'Fish drift toward hook', cost: 12, max: 3 },
 ];

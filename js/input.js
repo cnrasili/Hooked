@@ -1,19 +1,29 @@
-// Pointer + keyboard input.
+// Pointer and keyboard input handling.
 'use strict';
 
-// Cache canvas rect; invalidate on resize/scroll to avoid layout thrash.
+// ─── 1. CANVAS RECT CACHE ─────────────────────────────────────────────────────
+// getBoundingClientRect is called at most once per frame by caching the result.
+// Invalidated on resize or scroll so coordinate mapping stays accurate.
+
 let _inputRect = null;
 function _invalidateInputRect() { _inputRect = null; }
 window.addEventListener('resize', _invalidateInputRect, { passive: true });
 window.addEventListener('scroll', _invalidateInputRect, { passive: true });
 
+// ─── 2. INPUT OBJECT ──────────────────────────────────────────────────────────
+// init() wires pointer and keyboard events; _tickKeyboard() is called each
+// physics tick by the game loop to apply held-key movement.
+
 const Input = {
   init(canvasEl) {
+
+    // Pointer: map client X to canvas-space hook position.
     canvasEl.addEventListener('pointermove', (e) => {
       if (!G || G.phase !== PH.FISHING || G.isPaused) return;
       Input._moveHook(canvasEl, e.clientX);
     });
 
+    // Keyboard: Escape toggles pause; A/D and arrow keys move the hook.
     const _keys = {};
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && G && G.phase === PH.FISHING) {

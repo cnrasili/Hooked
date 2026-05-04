@@ -1,5 +1,9 @@
-// Asset path registry and biome texture sets.
+// Asset path registry and per-biome sprite overrides.
 'use strict';
+
+// ─── 1. SHARED ASSET PATHS ────────────────────────────────────────────────────
+// Keys here are loaded at startup by the asset queue in game.js.
+// All biomes share these sprites (boat, hook, UI icons, trash).
 
 const SKINS = {
   boat:       'assets/sprites/BasicBoat.png',
@@ -14,7 +18,7 @@ const SKINS = {
   upgradesBtn:    'assets/buttons/UpgradesButton.png',
   tryAgainBtn:    'assets/buttons/TryAgainButton.png',
 
-  // Inline UI icons (replace emoji).
+  // Inline UI icons (replace emoji in HUD and shop).
   iconCoin:       'assets/sprites/GoldenToken.png',
   iconHook:       'assets/sprites/GoldenHook.png',
   iconHeart:      'assets/sprites/BrokenHeart.png',
@@ -29,7 +33,10 @@ const SKINS = {
   trash6: 'assets/sprites/TrashModel_6.png',
 };
 
-// Per-biome texture overrides. Resolved via resolveSkin().
+// ─── 2. PER-BIOME OVERRIDES ───────────────────────────────────────────────────
+// Each biome defines its own background, sky, and fish sprites.
+// Loaded on demand in game.js (_warmupLevelAssets) when that biome is played.
+
 const BIOME_SKINS = {
   ocean: {
     bg:          'assets/backgrounds/OceanBackground.png',
@@ -54,6 +61,11 @@ const BIOME_SKINS = {
     fish3: 'assets/sprites/PolarFishModel_3.png',
   },
 };
+
+// ─── 3. RESOLVER ──────────────────────────────────────────────────────────────
+// Returns the namespaced store key for a biome-specific asset, or the base key
+// if no biome override exists. draw.js and entities.js use this to look up
+// the correct sprite from the Assets store at render time.
 
 function resolveSkin(biomeId, key) {
   const set = BIOME_SKINS[biomeId];

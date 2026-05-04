@@ -1,5 +1,9 @@
-// Shared mutable game state.
+// Shared canvas context and global mutable game state.
 'use strict';
+
+// ─── 1. CANVAS CONTEXT ────────────────────────────────────────────────────────
+// Obtained once here; every other module writes through _stateCtx and reads
+// canvas dimensions from G (built per-level in game.js).
 
 const _stateCanvas = document.getElementById('canvas');
 if (!_stateCanvas) throw new Error('#canvas element not found');
@@ -15,13 +19,20 @@ if (!_stateCtx) {
   throw new Error('Canvas 2D context unavailable');
 }
 
-// Log errors without breaking the loop.
+// ─── 2. GLOBAL ERROR HANDLERS ─────────────────────────────────────────────────
+// Log unexpected errors without crashing the page. The game loop has its own
+// per-frame error boundary (game.js) that halts after repeated failures.
+
 window.addEventListener('error', (e) => {
   console.error('[GlobalError]', e.message, e.error);
 });
 window.addEventListener('unhandledrejection', (e) => {
   console.error('[UnhandledRejection]', e.reason);
 });
+
+// ─── 3. GAME STATE ────────────────────────────────────────────────────────────
+// G holds the active level state object (built by _buildGameState in game.js).
+// animId is the current requestAnimationFrame handle.
 
 let G = null;
 let animId = null;

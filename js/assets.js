@@ -1,10 +1,15 @@
-// Image asset loader and wave strip generator.
+// Image asset loader and procedural wave strip generator.
 'use strict';
 
 const Assets = {
   _store: {},
-  // Called on each asset load (success or fail). Loading screen listens.
+  // Callback fired after each asset resolves; loading screen in game.js listens.
   _onProgress: null,
+
+  // ─── 1. IMAGE LOADING ───────────────────────────────────────────────────────
+  // load() wraps Image onload/onerror in a Promise so the asset queue in
+  // game.js can await all sprites before the first frame is drawn.
+  // register() lets generated canvases (wave strips) sit in the same store.
 
   load(key, src) {
     return new Promise(resolve => {
@@ -30,20 +35,21 @@ const Assets = {
     await Promise.all(entries.map(([key, src]) => this.load(key, src)));
   },
 
-  register(key, source) {
-    this._store[key] = source;
-  },
+  register(key, source) { this._store[key] = source; },
+  get(key)              { return this._store[key] || null; },
+  remove(key)           { delete this._store[key]; },
 
-  get(key) {
-    return this._store[key] || null;
-  },
+  // ─── 2. WAVE STRIP GENERATION ───────────────────────────────────────────────
+  // Wave textures are offscreen canvases, not image files.
+  // generateWaves() is called at startup and on every canvas resize so the
+  // strips always cover the current canvas width.
+  //
+  // Each biome has four parallax layers (far → front). If the source image
+  // loads successfully, _buildWaveStrips tiles it at different heights.
+  // If it fails (or is missing), _buildFallbackWaves draws a sine-curve
+  // gradient procedurally so the game always has something to show.
 
-  remove(key) {
-    delete this._store[key];
-  },
-
-  // Per-biome wave source images (loaded once, strips rebuilt on canvas resize).
-  _waveImgs: {},   // biomeId → Image | null
+  _waveImgs:   {},   // biomeId → Image | null (cached per session)
 
   _WAVE_FILES: {
     ocean: 'assets/waves/OceanWaterWave.png',
@@ -67,7 +73,6 @@ const Assets = {
     });
   },
 
-  // Returns a promise; called once at startup and on canvas resize.
   generateWaves(canvasWidth) {
     const biomeIds = Object.keys(this._WAVE_FILES);
     return Promise.all(
@@ -80,6 +85,8 @@ const Assets = {
     );
   },
 
+  // Tile the source image into four layers at progressively shorter heights
+  // to produce the depth-of-field parallax effect.
   _buildWaveStrips(canvasWidth, srcImg, biomeId) {
     const prefix = biomeId ? biomeId + '_' : '';
     const layers = [
@@ -112,11 +119,12 @@ const Assets = {
         cx.globalCompositeOperation = 'source-over';
       }
 
-      c._tileW      = tileW;
+      c._tileW = tileW;
       this.register(cfg.key, c);
     });
   },
 
+  // Sine-curve path filled with a gradient — no image required.
   _buildFallbackWaves(canvasWidth, biomeId) {
     const prefix = biomeId ? biomeId + '_' : '';
     const texW = Math.max(canvasWidth * 2, 800);
@@ -153,5 +161,4 @@ const Assets = {
       this.register(cfg.key, c);
     });
   },
-
 };

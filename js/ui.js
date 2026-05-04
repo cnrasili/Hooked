@@ -1,7 +1,10 @@
-// HUD, result screen, shop, menu buttons.
+// HUD updates, result screen, shop, level select, and button event wiring.
 'use strict';
 
-// DOM element cache.
+// ─── 1. DOM CACHE & INIT ──────────────────────────────────────────────────────
+// All getElementById calls collected here so the rest of the file never
+// touches the DOM query API directly.
+
 const _dom = {
   caughtDisp:    document.getElementById('caughtDisp'),
   targetDisp:    document.getElementById('targetDisp'),
@@ -29,7 +32,6 @@ const _dom = {
   levelList:     document.getElementById('levelList'),
 };
 
-
 _dom.menuBest.textContent = Save.bestScore;
 
 // Autoplay may be blocked until first user interaction; audio.js unlocks on input.
@@ -49,6 +51,10 @@ function _dismissAudioPrompt() {
 window.addEventListener('pointerdown', _dismissAudioPrompt);
 window.addEventListener('keydown',     _dismissAudioPrompt);
 
+// ─── 2. HUD ───────────────────────────────────────────────────────────────────
+// Called after every catch or phase change to sync DOM with game state.
+// The phase display shows hook-HP as icon strips during the fishing phase.
+
 function updateHUD() {
   if (!G) return;
   _dom.caughtDisp.textContent = G.caught;
@@ -56,16 +62,20 @@ function updateHUD() {
   _dom.lvlDisp.textContent    = `LEVEL ${G.cfg.n}`;
   _dom.goldHud.innerHTML = `<span class="ic ic-coin"></span> ${Save.gold + G.gold}`;
   if (G.phase === PH.FISHING) {
-    const full  = '<span class="ic ic-hook"></span>'.repeat(G.hookHP);
-    const lost  = '<span class="ic ic-heart"></span>'.repeat(G.maxHookHP - G.hookHP);
+    const full = '<span class="ic ic-hook"></span>'.repeat(G.hookHP);
+    const lost = '<span class="ic ic-heart"></span>'.repeat(G.maxHookHP - G.hookHP);
     _dom.phaseDisp.innerHTML = full + lost;
   }
 }
 
+// ─── 3. RESULT SCREEN ────────────────────────────────────────────────────────
+// showResult() is called by entities.js (on HP = 0) and game.js (on target
+// reached). It flushes gold/score to Save, builds the stat table, and wires
+// the primary action button (next level / try again).
+
 function showResult() {
   stopVictory();
   const g      = G;
-  // Passed = hit target and hook not broken.
   const passed = g.caught >= g.cfg.target && g.hookHP > 0;
 
   const isNew = g.caught > Save.bestScore && g.caught > 0;
@@ -76,22 +86,25 @@ function showResult() {
   Save.flush();
   _dom.menuBest.textContent = Save.bestScore;
 
-  _dom.resTitle.textContent = passed ? 'Congratulations!' : (g.hookHP <= 0 ? 'Hook Torn!' : 'Not Enough\u2026');
+  _dom.resTitle.textContent = passed ? 'Congratulations!' : (g.hookHP <= 0 ? 'Hook Torn!' : 'Not Enough…');
   _dom.resTitle.style.color = passed ? '#ffd166' : '#ff4d6d';
 
-  _dom.rScoreNum.textContent = g.caught;
-
+  _dom.rScoreNum.textContent  = g.caught;
   _dom.rCaught.textContent    = g.caught;
-  _dom.rTarget.textContent     = g.cfg.target;
-  _dom.rHP.textContent         = `${g.hookHP}/${g.maxHookHP}`;
-  _dom.rGold.textContent       = `+${g.gold}`;
-  _dom.rBestScore.textContent  = Save.bestScore;
-  _dom.rTotalGold.textContent  = Save.gold;
+  _dom.rTarget.textContent    = g.cfg.target;
+  _dom.rHP.textContent        = `${g.hookHP}/${g.maxHookHP}`;
+  _dom.rGold.textContent      = `+${g.gold}`;
+  _dom.rBestScore.textContent = Save.bestScore;
+  _dom.rTotalGold.textContent = Save.gold;
+  _dom.rNewBest.hidden        = !isNew;
 
-  _dom.rNewBest.hidden = !isNew;
-
-  if (passed) { playVictory(); }
-  else { stopLevelMusic(); playTone(180, 'sawtooth', .4, .22); playTone(120, 'sawtooth', .5, .2, .08); }
+  if (passed) {
+    playVictory();
+  } else {
+    stopLevelMusic();
+    playTone(180, 'sawtooth', .4, .22);
+    playTone(120, 'sawtooth', .5, .2, .08);
+  }
 
   const isLast = g.idx >= LEVELS.length - 1;
   const nb     = _dom.nextBtn;
@@ -113,7 +126,7 @@ function showResult() {
   const overlay = _dom.resultOverlay;
   overlay.classList.remove('hidden', 'res-passed', 'res-failed');
   overlay.classList.add(passed ? 'res-passed' : 'res-failed');
-  overlay.offsetHeight;
+  overlay.offsetHeight; // force reflow so the CSS transition fires
   overlay.classList.add('show');
 
   _showGoldEarned(earnedGold, overlay);
@@ -128,6 +141,33 @@ function _showGoldEarned(amount, container) {
   el.addEventListener('animationend', () => el.remove());
 }
 
+// Slides the result overlay out and stops the victory music.
+function _closeResult() {
+  stopVictory();
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+
+  const overlay = _dom.resultOverlay;
+  if (!overlay.classList.contains('show')) return;
+
+  overlay.classList.remove('show');
+
+  let done = false;
+  const finalize = () => {
+    if (done) return;
+    done = true;
+    overlay.removeEventListener('transitionend', onTransitionEnd);
+    clearTimeout(fallbackTimer);
+    overlay.classList.add('hidden');
+  };
+  const onTransitionEnd = (e) => { if (e.target === overlay) finalize(); };
+
+  overlay.addEventListener('transitionend', onTransitionEnd);
+  const fallbackTimer = setTimeout(finalize, 600);
+}
+
+// ─── 4. SHOP ──────────────────────────────────────────────────────────────────
+// renderShop() rebuilds the card list from UPGRADES + POWERUPS on each open
+// or purchase. _makeShopCard() returns a single DOM card element.
 
 function openShop() {
   renderShop();
@@ -211,38 +251,11 @@ function confirmReset() {
   }
 }
 
-const _RESULT_TRANSITION_MS = 600;
+// ─── 5. LEVEL SELECT ─────────────────────────────────────────────────────────
+// Level cards are built dynamically from LEVELS + Save unlock state.
+// Locked cards show a padlock and play an error SFX on click.
 
-function _closeResult() {
-  stopVictory();
-  if (animId) { cancelAnimationFrame(animId); animId = null; }
-
-  const overlay = _dom.resultOverlay;
-
-  if (!overlay.classList.contains('show')) return;
-
-  overlay.classList.remove('show');
-
-  let done = false;
-  const finalize = () => {
-    if (done) return;
-    done = true;
-    overlay.removeEventListener('transitionend', onTransitionEnd);
-    clearTimeout(fallbackTimer);
-    overlay.classList.add('hidden');
-  };
-
-  const onTransitionEnd = (e) => {
-    if (e.target !== overlay) return;
-    finalize();
-  };
-
-  overlay.addEventListener('transitionend', onTransitionEnd);
-  const fallbackTimer = setTimeout(finalize, _RESULT_TRANSITION_MS);
-}
-
-// Level select screen. Biome id → icon emoji for the level card.
-const _BIOME_ICON = { ocean: '\u{1F30A}', swamp: '\u{1FAB5}', polar: '\u2744\uFE0F' };
+const _BIOME_ICON = { ocean: '🌊', swamp: '🪴', polar: '❄️' };
 const _DIFF_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 
 function renderLevelSelect() {
@@ -253,7 +266,7 @@ function renderLevelSelect() {
   LEVELS.forEach((lv, idx) => {
     const biome    = BIOMES[lv.biome] || BIOMES.ocean;
     const unlocked = Save.isUnlocked(idx);
-    const icon     = unlocked ? (_BIOME_ICON[biome.id] || '\u{1F30A}') : '\u{1F512}';
+    const icon     = unlocked ? (_BIOME_ICON[biome.id] || '🌊') : '🔒';
     const diffTxt  = _DIFF_LABEL[biome.difficulty] || biome.difficulty;
 
     const card = document.createElement('button');
@@ -298,7 +311,10 @@ function closeLevelSelect() {
   _dom.menuScreen.classList.remove('hidden');
 }
 
-// Main menu buttons.
+// ─── 6. BUTTON WIRING ────────────────────────────────────────────────────────
+// All interactive buttons wired here in one place. screenTransition() wraps
+// navigation calls with the shared cross-screen fade.
+
 document.getElementById('startBtn').addEventListener('click', () => {
   screenTransition(() => openLevelSelect());
 });
@@ -311,19 +327,20 @@ document.getElementById('shopBtn').addEventListener('click', () => {
 document.getElementById('shopCloseBtn').addEventListener('click', () => {
   screenTransition(() => closeShop());
 });
-document.getElementById('resetBtn').addEventListener('click',  confirmReset);
+document.getElementById('resetBtn').addEventListener('click', confirmReset);
 
-// Mute button — all screens share the same state.
+// Mute button — all four instances (menu, pause, level-select, shop) share state.
 const _muteBtns = [
   document.getElementById('muteBtn'),
   document.getElementById('muteBtnPause'),
   document.getElementById('muteBtnLS'),
   document.getElementById('muteBtnShop'),
 ].filter(Boolean);
+
 function _refreshMuteBtn() {
   if (!_muteBtns.length) return;
-  const m = isMuted();
-  const icon = m ? '\u{1F507}' : '\u{1F50A}'; // 🔇 / 🔊
+  const m    = isMuted();
+  const icon  = m ? '🔇' : '🔊';
   const label = m ? 'Unmute sound' : 'Mute sound';
   _muteBtns.forEach(btn => {
     btn.textContent = icon;
@@ -362,4 +379,3 @@ document.getElementById('pauseMenuBtn').addEventListener('click', () => {
     _dom.menuBest.textContent = Save.bestScore;
   });
 });
-

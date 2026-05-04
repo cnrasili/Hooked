@@ -1,5 +1,10 @@
-// SFX and background music.
+// Sound effects (Web Audio API) and background music (HTMLAudioElement).
 'use strict';
+
+// ─── 1. AUDIO CONTEXT ────────────────────────────────────────────────────────
+// Web Audio requires a user gesture before the context can run.
+// _unlockAudio is registered on the first pointer/key event and removed
+// once the context reaches 'running' state.
 
 let audioCtx = null;
 let _muted = false;
@@ -25,6 +30,7 @@ function toggleMute() {
   return _muted;
 }
 
+// Lazy AudioContext getter — created on first use to avoid autoplay restrictions.
 function ac() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
@@ -47,6 +53,11 @@ function _removeAudioUnlockListeners() {
 }
 
 _AUDIO_UNLOCK_EVENTS.forEach(ev => window.addEventListener(ev, _unlockAudio));
+
+// ─── 2. SOUND EFFECTS ────────────────────────────────────────────────────────
+// All SFX are synthesised via Web Audio oscillators and gain envelopes —
+// no external audio files. playTone() is the shared primitive; named helpers
+// above it define each game event's sound.
 
 function playTone(freq, type, dur, vol, delay = 0) {
   if (_muted) return;
@@ -73,7 +84,7 @@ function sfxCatch() {
 }
 
 function sfxCoin() {
-  playTone(880, 'sine', 0.06, 0.12);
+  playTone(880,  'sine', 0.06, 0.12);
   playTone(1100, 'sine', 0.06, 0.10, 0.05);
 }
 
@@ -93,6 +104,7 @@ function sfxHit() {
   playTone(110, 'sawtooth', 0.18, 0.20, 0.05);
 }
 
+// Splash: bandpass-filtered white noise burst (hook entering water).
 let _splashBuf     = null;
 let _splashBufRate = 0;
 
@@ -126,7 +138,11 @@ function sfxSplash() {
   }
 }
 
-// Background music: menu / level / victory tracks.
+// ─── 3. BACKGROUND MUSIC ─────────────────────────────────────────────────────
+// Three looping HTMLAudioElement tracks: menu, per-level, and victory.
+// Only one plays at a time; muting sets volume to 0 instead of pausing
+// so the playback position is preserved if the player unmutes mid-track.
+
 const _menuAudio    = document.getElementById('menuMusic');
 const _levelAudio   = document.getElementById('levelMusic');
 const _victoryAudio = document.getElementById('victoryMusic');
