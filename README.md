@@ -57,7 +57,7 @@ For GitHub Pages deployment, the game is available at the repository's Pages URL
 
 | Action | Input |
 |---|---|
-| Move the net | Mouse / Touch drag, or Arrow Keys (← →) / A D keys |
+| Move the hook | Mouse / Touch drag, or Arrow Keys (← →) / A D keys |
 | Pause / Resume | Esc key |
 | Toggle sound | Speaker button on main menu or pause screen |
 | Skip intro cast | Tap / click anywhere during the cast animation |
@@ -67,18 +67,16 @@ For GitHub Pages deployment, the game is available at the repository's Pages URL
 ## Gameplay Loop
 
 1. **Biome Select** — Choose an ocean biome. Beating a biome unlocks the next. Each biome increases difficulty (faster rise, more trash, new fish).
-2. **Fishing Phase** — Catch the target number of fish while avoiding trash. Trash reduces Net HP.
-3. **Result Screen** — Awards gold, shows high scores, triggers confetti on a win.
-4. **Shop** — Spend gold on permanent upgrades (wider net, HP, slower rise) and powerups (shield, magnet, timewarp).
+2. **Fishing Phase** — Catch the target number of fish while avoiding trash. Trash reduces Hook HP.
+3. **Result Screen** — Awards gold and shows high scores.
+4. **Shop** — Spend gold on permanent upgrades (reinforced hook, slower rise) and powerups (shield, lucky worm).
 
 ---
 
 ## Features
 
 - **Multiple biomes** — progressively harder ocean environments with unique backgrounds, waves, and fish types
-- **Upgrade system** — permanent net upgrades and consumable powerups purchased with in-game gold
-- **Particle effects** — burst particles, confetti, floating score text, and damage flash
-- **Fixed-timestep physics** — frame-rate-independent gameplay across 30 / 60 / 120 Hz displays
+- **Upgrade system** — permanent hook upgrades and consumable powerups purchased with in-game gold
 - **Object pooling** — DOM pool and WeakMap-based animation reuse to prevent GC jank
 - **Biome-aware rendering** — per-biome sprite resolution via `resolveSkin(biomeId, key)`
 - **Offscreen canvas caching** — water gradients, wave strips, and caustics pre-rendered and reused per resize
@@ -89,11 +87,11 @@ For GitHub Pages deployment, the game is available at the repository's Pages URL
 
 ## Computer Graphics Concepts Demonstrated
 
-- **Transformations** — boat bobbing, hook punch scaling, and net sway using rotation and translation
-- **Animation** — particle systems, tween-based float texts (Web Animations API), and fixed-timestep physics
-- **Interaction** — Pointer Events API (mouse/touch/pen unified), keyboard state, and pause/mute state machine
-- **Rendering techniques** — offscreen canvas caching, parallax wave strips, caustics light shaders, and biome-aware sprite pipelines
-- **Effects** — damage flashing, screen shake, depth vignette, burst particles, and confetti
+- **Transformations** — boat bobbing, hook punch scaling, and sprite wobble rotation
+- **Animation** — tween-based float texts (Web Animations API) and fixed-timestep game loop
+- **Interaction** — Pointer Events API (mouse/touch unified), keyboard state, and pause/mute state machine
+- **Rendering techniques** — offscreen canvas caching, parallax wave strips, and biome-aware sprite pipelines
+- **Effects** — floating score text, depth gauge, and linear interpolation-based depth color transitions
 
 ---
 
@@ -111,7 +109,7 @@ Hooked!/
 │   ├── save.js              # localStorage persistence
 │   ├── state.js             # Shared mutable game state + global error handler
 │   ├── input.js             # Pointer + keyboard bindings
-│   ├── entities.js          # Spawn, collisions, particles, float text pool
+│   ├── entities.js          # Spawn, collisions, float text pool
 │   ├── draw.js              # All canvas rendering
 │   ├── game.js              # Loop, loading screen controller, level lifecycle
 │   └── ui.js                # Menu / shop / result / HUD DOM wiring
@@ -126,7 +124,7 @@ Hooked!/
 
 - Fish, boat, hook, trash — custom pixel art by the author
 - Background music — see `sounds/musics/` file attributions in the report
-- Fonts — Google Fonts: Fredoka One, Nunito
+- Fonts — Google Fonts: Press Start 2P, Pixelify Sans
 
 ---
 
