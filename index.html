@@ -147,31 +147,33 @@
           <div id="rNewBest" class="new-best" hidden>NEW BEST</div>
         </div>
 
-        <!-- Stat table; 3rd column is labelled per row. -->
+        <!-- Stat table: two sections, no empty cells. -->
         <div class="res-stats">
-          <div class="rs-header">
-            <span>This Game</span>
-            <span>Stat</span>
-            <span>Record</span>
+          <div class="rs-section-label">This Run</div>
+          <div class="rs-row">
+            <span class="rs-label">Caught</span>
+            <span class="rs-val" id="rCaught">0</span>
           </div>
           <div class="rs-row">
-            <span class="rs-val" id="rCaught">0</span>
-            <span class="rs-label">Caught</span>
+            <span class="rs-label">Target</span>
+            <span class="rs-val" id="rTarget">10</span>
+          </div>
+          <div class="rs-row">
+            <span class="rs-label">Hook HP</span>
+            <span class="rs-val" id="rHP">—</span>
+          </div>
+          <div class="rs-row rs-row-gold">
+            <span class="rs-label">Gold Earned</span>
+            <span class="rs-val" id="rGold">+0</span>
+          </div>
+          <div class="rs-divider"></div>
+          <div class="rs-section-label">All Time</div>
+          <div class="rs-row">
+            <span class="rs-label">Best Score</span>
             <span class="rs-best" id="rBestScore">0</span>
           </div>
           <div class="rs-row">
-            <span class="rs-val" id="rTarget">10</span>
-            <span class="rs-label">Target</span>
-            <span class="rs-best"></span>
-          </div>
-          <div class="rs-row">
-            <span class="rs-val" id="rHP">—</span>
-            <span class="rs-label">Hook HP</span>
-            <span class="rs-best"></span>
-          </div>
-          <div class="rs-row rs-row-gold">
-            <span class="rs-val" id="rGold">+0</span>
-            <span class="rs-label">Gold</span>
+            <span class="rs-label">Total Gold</span>
             <span class="rs-best" id="rTotalGold">0</span>
           </div>
         </div>

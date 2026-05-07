@@ -450,23 +450,26 @@ canvas     { display: block; touch-action: none; }
 }
 
 .res-stats {
-  top: 44%; width: 70%; max-width: 220px; margin: 0 auto; padding: 0 4px;
+  top: 44%; width: 72%; max-width: 230px; margin: 0 auto; padding: 0 4px;
   display: flex; flex-direction: column; gap: 0;
 }
-.rs-header {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center;
-  font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-  color: #8a7a6a; padding-bottom: 4px; margin-bottom: 2px;
+.rs-section-label {
+  font-family: var(--fb); font-size: .65rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: #8a7a6a; padding: 4px 0 3px; margin-top: 2px;
 }
 .rs-row {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  align-items: center; text-align: center; padding: 3px 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 0;
 }
-.rs-val   { font-family: var(--fp); font-size: .85rem; color: #1a1a2e; }
-.rs-label { font-family: var(--fb); font-size: .95rem; font-weight: 700; color: #6a5a4a; }
+.rs-val   { font-family: var(--fp); font-size: .8rem; color: #1a1a2e; }
+.rs-label { font-family: var(--fb); font-size: .9rem; font-weight: 700; color: #6a5a4a; }
 .rs-best  { font-family: var(--fp); font-size: .75rem; color: #8a7a6a; }
 .rs-row-gold .rs-val  { color: #b87408; }
-.rs-row-gold .rs-best { color: #a08060; }
+.rs-divider {
+  border: none; border-top: 1.5px dashed rgba(138,122,106,.4);
+  margin: 5px 0 2px;
+}
 
 .res-btn-primary {
   top: 66%; width: min(240px, 62%); aspect-ratio: 9216 / 3735; margin: 0 auto;
