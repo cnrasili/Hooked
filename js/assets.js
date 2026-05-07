@@ -30,14 +30,8 @@ const Assets = {
     });
   },
 
-  async loadManifest(manifest) {
-    const entries = Object.entries(manifest);
-    await Promise.all(entries.map(([key, src]) => this.load(key, src)));
-  },
-
   register(key, source) { this._store[key] = source; },
   get(key)              { return this._store[key] || null; },
-  remove(key)           { delete this._store[key]; },
 
   // ─── 2. WAVE STRIP GENERATION ───────────────────────────────────────────────
   // Wave textures are offscreen canvases, not image files.

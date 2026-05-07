@@ -66,7 +66,6 @@ const _gradCache = {
   bg:      { key: '', grad: null },
   shimmer: { key: '', grad: null },
   sand:    { key: '', grad: null, sy: -1 },
-  depth:   { key: '', grad: null },
 };
 
 function _getBgGradient(cH, biome, depthT) {
@@ -516,7 +515,6 @@ function _invalidateGradientCache() {
   _gradCache.bg.key = '';
   _gradCache.shimmer.key = '';
   _gradCache.sand.key = '';
-  _gradCache.depth.key = '';
   _depthBarGradKey = '';
   _seabedDecoCache.key = '';
 }

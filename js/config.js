@@ -12,7 +12,6 @@ const BIOMES = {
     deepTop:    [0x06, 0x20, 0x40], deepBot:    [0x02, 0x10, 0x1e],
     sandRGB: '210,180,120',
     seabedDeco: ['\u{1F33F}','\u{1FAB8}','⭐','\u{1F41A}'],
-    skinKey: 'ocean',
     fishKeys: ['fish1', 'fish2', 'fish3', 'fish4'],
   },
   swamp: {
@@ -21,7 +20,6 @@ const BIOMES = {
     deepTop:    [0x1f, 0x2a, 0x18], deepBot:    [0x0e, 0x14, 0x0a],
     sandRGB: '110,90,50',
     seabedDeco: ['\u{1F33F}','\u{1FAB5}','\u{1F344}','\u{1FAB1}'],
-    skinKey: 'swamp',
     fishKeys: ['fish1', 'fish2', 'fish3'],
   },
   polar: {
@@ -30,7 +28,6 @@ const BIOMES = {
     deepTop:    [0x1e, 0x3a, 0x5e], deepBot:    [0x08, 0x14, 0x28],
     sandRGB: '200,220,235',
     seabedDeco: ['❄️','\u{1F9CA}','⭐','\u{1F41F}'],
-    skinKey: 'polar',
     fishKeys: ['fish1', 'fish2', 'fish3'],
   },
 };

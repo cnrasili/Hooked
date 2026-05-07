@@ -20,7 +20,7 @@ function initObjectPool(size) {
 }
 
 function _makeBlankObject() {
-  return { x: 0, y: 0, vy: 0, vx: 0, sz: 60,
+  return { x: 0, y: 0, vy: 0, sz: 60,
            bad: false, sprite: null, em: null,
            wb: 0, alpha: 1, caught: false };
 }
@@ -75,7 +75,7 @@ function _spawnTrash(g, cfg, x) {
   const key    = _TRASH_KEYS[Math.floor(Math.random() * _TRASH_KEYS.length)];
   const sprite = Assets.get(key) ? key : null;
   _pushObject(g, {
-    sz: 52, x, vy, vx: 0, bad: true,
+    sz: 52, x, vy, bad: true,
     sprite,
     em: sprite ? null : '\u{1F5D1}️',
   });
@@ -86,7 +86,7 @@ function _spawnFish(g, cfg, x) {
   const baseKey = keys[Math.floor(Math.random() * keys.length)];
   const sprite  = _resolveSprite(cfg.biome, baseKey);
   const vy = 0.9 + Math.random() * 1.0 + (cfg.n - 1) * 0.2;
-  _pushObject(g, { sz: 60, x, vy, vx: 0, bad: false, sprite });
+  _pushObject(g, { sz: 60, x, vy, bad: false, sprite });
 }
 
 function _pushObject(g, props) {
@@ -101,7 +101,6 @@ function _pushObject(g, props) {
   o.x      = x;
   o.sz     = sz;
   o.vy     = props.vy  !== undefined ? props.vy  : 1;
-  o.vx     = props.vx  !== undefined ? props.vx  : 0;
   o.bad    = props.bad !== undefined ? props.bad : false;
   o.sprite = props.sprite || null;
   o.em     = props.em    || null;
