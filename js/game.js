@@ -442,7 +442,7 @@ function updateFishing() {
 
   if (g.worldOffset <= -g.WORLD_H) {
     g.worldOffset  = -g.WORLD_H;
-    g.objects      = [];
+    clearObjects(g);
     g.phase        = PH.SURFACE;
     g.surfaceTimer = 0;
     g.boatScreenY  = -80;

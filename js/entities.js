@@ -39,6 +39,12 @@ function releaseObject(o) {
   _pool.push(o);
 }
 
+// Releases every active object back to the pool, then empties the array.
+function clearObjects(g) {
+  for (let i = 0; i < g.objects.length; i++) releaseObject(g.objects[i]);
+  g.objects.length = 0;
+}
+
 // ─── 2. SPAWN ─────────────────────────────────────────────────────────────────
 // Objects (fish / trash) are configured and pushed into g.objects.
 // Biome fish pools and the bad-object ratio are defined in config.js.
@@ -143,7 +149,7 @@ function _onTrashCaught(g, o) {
 
   floatText(o.x, o.y, '-1 <span class="ic ic-heart"></span>', '#ff4d6d');
   updateHUD();
-  if (g.hookHP <= 0) { g.objects = []; g.phase = PH.RESULT; showResult(); }
+  if (g.hookHP <= 0) { clearObjects(g); g.phase = PH.RESULT; showResult(); }
 }
 
 function _onFishCaught(g, o) {
