@@ -433,7 +433,7 @@ canvas     { display: block; touch-action: none; }
   color: #ff0000; font-weight: bold;
   text-shadow: 1px 1px 0 rgba(255,255,255,.5);
 }
-.res-score-wrap { top: 35%; width: 60%; max-width: 200px; margin: 0 auto; font-weight: bold; text-align: center; }
+.res-score-wrap { top: 36%; width: 60%; max-width: 200px; margin: 0 auto; font-weight: bold; text-align: center; }
 .res-score-label {
   font-family: var(--fp); font-size: .75rem; font-weight: 800;
   letter-spacing: 2px; text-transform: uppercase; color: #5a4a3a;
@@ -441,6 +441,7 @@ canvas     { display: block; touch-action: none; }
 .res-score-num {
   font-family: var(--fp); font-size: clamp(1.5rem, 10cqw, 2.2rem);
   color: #1a1a2e; line-height: 1.1; text-shadow: 1px 1px 0 rgba(255,255,255,.4);
+  margin-top: 8px;
 }
 .new-best {
   display: inline-block; margin-top: 2px; padding: 2px 10px;
@@ -450,25 +451,25 @@ canvas     { display: block; touch-action: none; }
 }
 
 .res-stats {
-  top: 44%; width: 72%; max-width: 230px; margin: 0 auto; padding: 0 4px;
+  top: 43%; width: 68%; max-width: 215px; margin: 0 auto; padding: 0 4px;
   display: flex; flex-direction: column; gap: 0;
 }
 .rs-section-label {
-  font-family: var(--fb); font-size: .65rem; font-weight: 800;
+  font-family: var(--fb); font-size: .58rem; font-weight: 800;
   text-transform: uppercase; letter-spacing: 1.5px;
-  color: #8a7a6a; padding: 4px 0 3px; margin-top: 2px;
+  color: #8a7a6a; padding: 3px 0 2px; margin-top: 1px;
 }
 .rs-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 3px 0;
+  padding: 2px 0;
 }
-.rs-val   { font-family: var(--fp); font-size: .8rem; color: #1a1a2e; }
-.rs-label { font-family: var(--fb); font-size: .9rem; font-weight: 700; color: #6a5a4a; }
-.rs-best  { font-family: var(--fp); font-size: .75rem; color: #8a7a6a; }
-.rs-row-gold .rs-val  { color: #b87408; }
+.rs-val   { font-family: var(--fp); font-size: .68rem; color: #0d0d1a; }
+.rs-label { font-family: var(--fb); font-size: .8rem; font-weight: 700; color: #3a2a1a; }
+.rs-best  { font-family: var(--fp); font-size: .63rem; color: #4a3a2a; }
+.rs-row-gold .rs-val  { color: #8a5200; }
 .rs-divider {
   border: none; border-top: 1.5px dashed rgba(138,122,106,.4);
-  margin: 5px 0 2px;
+  margin: 4px 0 1px;
 }
 
 .res-btn-primary {

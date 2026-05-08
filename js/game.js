@@ -422,7 +422,6 @@ function update() {
   const g = G;
 
   g.frame++;
-  if (g.hookPunch > 0) g.hookPunch--;
 
   if (Input._tickKeyboard) Input._tickKeyboard();
 
@@ -623,7 +622,6 @@ function _buildGameState(cW, cH, cfg, idx, overrides) {
     spawnLaneIdx:   0,
     shieldActive: overrides.shieldActive,
     wormActive:   overrides.wormActive,
-    hookPunch:    0,
   };
 }
 

@@ -152,8 +152,6 @@ function _onTrashCaught(g, o) {
 }
 
 function _onFishCaught(g, o) {
-  g.hookPunch = 8;
-
   g.caught += 1;
   g.gold   += GOLD_PER_FISH;
   sfxCatch();

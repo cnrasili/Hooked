@@ -307,21 +307,14 @@ function drawHook(screenY, alpha, overrideCx) {
   if (showRope) {
     _stateCtx.strokeStyle = '#c8a96e';
     _stateCtx.lineWidth = 2; _stateCtx.globalAlpha = 0.7 * alpha;
-    _stateCtx.beginPath(); _stateCtx.moveTo(cx, screenY); _stateCtx.lineTo(cx, 0); _stateCtx.stroke();
+    _stateCtx.beginPath(); _stateCtx.moveTo(cx, screenY + 10); _stateCtx.lineTo(cx, 0); _stateCtx.stroke();
   }
 
   const hook = Assets.get('hook');
   if (hook) {
     const drawH = hookH + 10, drawW = drawH * (hook.width / hook.height);
     _stateCtx.globalAlpha = alpha;
-    if (g.hookPunch > 0) {
-      const punchScale = 1 + (g.hookPunch / 8) * 0.25;
-      _stateCtx.translate(cx, screenY + drawH / 2);
-      _stateCtx.scale(punchScale, punchScale);
-      _stateCtx.drawImage(hook, -drawW / 2, -drawH / 2, drawW, drawH);
-    } else {
-      _stateCtx.drawImage(hook, cx - drawW / 2, screenY, drawW, drawH);
-    }
+    _stateCtx.drawImage(hook, cx - drawW / 2, screenY, drawW, drawH);
   } else {
     drawEmoji('\u{1FA9D}', cx, screenY + hookH / 2, 40, alpha);
   }
@@ -347,7 +340,7 @@ function drawRope(boatY, hookY) {
   _stateCtx.globalAlpha = 0.75;
   _stateCtx.beginPath();
   _stateCtx.moveTo(ropeX, ropeStartY);
-  _stateCtx.lineTo(ropeX, hookY);
+  _stateCtx.lineTo(ropeX, hookY + 10);
   _stateCtx.stroke();
   _stateCtx.restore();
 }
